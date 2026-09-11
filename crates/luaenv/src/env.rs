@@ -1,5 +1,3 @@
-use std::rc::Weak;
-
 use mlua::{MaybeSend, prelude::*};
 
 /// Lua environment wrapper
@@ -37,13 +35,25 @@ impl LuaEnv {
         A: FromLuaMulti,
         R: IntoLuaMulti,
     {
-        let lua_func = self.lua.create_function(func)?;
+        self.add_member(name, self.lua.create_function(func)?)
+    }
 
+    pub fn add_async_function<F, A, FR, R>(&self, name: &str, func: F) -> LuaResult<()>
+    where
+        F: Fn(Lua, A) -> FR + MaybeSend + 'static,
+        A: FromLuaMulti,
+        FR: Future<Output = LuaResult<R>> + MaybeSend + 'static,
+        R: IntoLuaMulti,
+    {
+        self.add_member(name, self.lua.create_async_function(func)?)
+    }
+
+    pub fn add_member(&self, name: &str, member: impl IntoLua) -> LuaResult<()> {
         if !name.contains(".") {
             // just set by name, we do not care if name exist
             let root: LuaTable = self.lua.globals().get(self.name.as_str())?;
 
-            root.set(name, lua_func)?;
+            root.set(name, member)?;
         } else {
             // assuming that we need to set by name in nested table
             // TODO: we need to make sure that the name is a valid variable name
@@ -71,7 +81,7 @@ impl LuaEnv {
                 }
             }
 
-            target_table.set(*parts.last().unwrap(), lua_func)?;
+            target_table.set(*parts.last().unwrap(), member)?;
         }
 
         Ok(())
