@@ -1,0 +1,13 @@
+[package]
+name = "tiny"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+luaenv = { path = "../luaenv" }
+
+tokio = { workspace = true, features = ["full"] }
+reqwest = { workspace = true, features = ["json", "stream"] }
+futures-util = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
