@@ -1,3 +1,28 @@
-fn main() {
-    println!("Hello, world!");
+use luaenv::env::LuaEnv;
+use luaenv::lua::{Lua, LuaResult};
+
+fn t(_: &Lua, _: ()) -> LuaResult<()> {
+    println!("hello, world");
+
+    Ok(())
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
+    let env = LuaEnv::new("tiny").unwrap();
+
+    env.add_function("test", t).unwrap();
+    env.add_function("a.b.test", t).unwrap();
+    env.add_member("a.b.pi", 3.1415).unwrap();
+    env.add_package_path("r/?.lua").unwrap();
+
+    env.exec_script("t.lua").await.unwrap();
+
+    env.call::<()>("print", ("hello", "-", "world"))
+        .await
+        .unwrap();
+
+    let ret = env.call::<i32>("sum", (1, 2)).await.unwrap();
+
+    println!("a + b = {}", ret);
 }

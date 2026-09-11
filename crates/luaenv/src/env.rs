@@ -1,3 +1,5 @@
+use std::{fs::File, io::Read, path::Path};
+
 use mlua::{MaybeSend, prelude::*};
 
 /// Lua environment wrapper
@@ -83,6 +85,61 @@ impl LuaEnv {
 
             target_table.set(*parts.last().unwrap(), member)?;
         }
+
+        Ok(())
+    }
+
+    pub async fn call<T>(&self, name: &str, args: impl IntoLuaMulti) -> LuaResult<T>
+    where
+        T: FromLuaMulti,
+    {
+        let v: LuaValue = self.lua.globals().get_path(name)?;
+
+        match v {
+            LuaValue::Function(func) => {
+                return func.call_async::<T>(args).await;
+            }
+            _ => {}
+        }
+
+        Err(LuaError::RuntimeError(format!(
+            "Fail to call: {}, not exist, or not callable.",
+            name
+        )))
+    }
+
+    /// add a dir as package path, to support require
+    pub fn add_package_path(&self, dir: &str) -> LuaResult<()> {
+        let globals = self.lua.globals();
+
+        let package: LuaTable = globals.get("package")?;
+
+        let path: LuaString = package.get("path")?;
+
+        package.set("path", path.to_str()?.to_string() + ";" + dir)?;
+
+        Ok(())
+    }
+
+    /// load a script file
+    pub async fn exec_script(&self, file: &str) -> LuaResult<()> {
+        let file_path = Path::new(file);
+
+        if !file_path.exists() || !file_path.is_file() {
+            return Err(LuaError::RuntimeError(format!(
+                "file not exist, not invalid: {}",
+                file
+            )));
+        }
+
+        let mut script = String::new();
+
+        {
+            let mut fp = File::open(file_path)?;
+            fp.read_to_string(&mut script)?;
+        }
+
+        self.lua.load(script).exec_async().await?;
 
         Ok(())
     }
