@@ -6,8 +6,11 @@ edition = "2024"
 [dependencies]
 luaenv = { path = "../luaenv" }
 
+thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 reqwest = { workspace = true, features = ["json", "stream"] }
 futures-util = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+
+async-trait = { workspace = true }
