@@ -1,6 +1,3 @@
-use std::sync::{Arc, MutexGuard};
-
-use async_trait::async_trait;
 use futures_util::StreamExt;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
@@ -8,8 +5,8 @@ use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
 use crate::core::common::{
-    ChatClient, ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk,
-    TinyError, ToolCall, UserMessage,
+    ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk, TinyError,
+    ToolCall, UserMessage,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -115,7 +112,7 @@ fn message_to_json_value(message: &Message) -> serde_json::Value {
                     "content": text
                 })
             }
-            UserMessage::Rich(parts) => {
+            UserMessage::Parts(parts) => {
                 let content: Vec<Value> = parts.iter().map(|p| part_to_value(p)).collect();
 
                 json!({
@@ -153,137 +150,125 @@ fn message_to_json_value(message: &Message) -> serde_json::Value {
     }
 }
 
-pub struct OpenaiChatClient {}
+pub async fn chat(
+    options: &ChatOptions,
+    messages: &Vec<Message>,
+    chunk_sender: mpsc::Sender<MessageChunk>,
+) -> Result<Message, TinyError> {
+    let message_value_list: Vec<Value> =
+        messages.iter().map(|m| message_to_json_value(m)).collect();
 
-impl Default for OpenaiChatClient {
-    fn default() -> Self {
-        Self {}
-    }
-}
+    let payload = json!({
+            "model": &options.model,
+            "base_url": &options.base_url,
+            "stream": options.stream,
+            "max_tokens": options.max_token,
+            "thinking": {
+                "type": "enabled"
+            },
+            "messages": message_value_list
+    });
 
-#[async_trait]
-impl ChatClient for OpenaiChatClient {
-    async fn chat(
-        &self,
-        options: Arc<ChatOptions>,
-        messages: &Vec<Message>,
-        chunk_sender: mpsc::Sender<MessageChunk>,
-    ) -> Result<Message, TinyError> {
-        let message_value_list: Vec<Value> =
-            messages.iter().map(|m| message_to_json_value(m)).collect();
+    let mut headers = header::HeaderMap::new();
 
-        let payload = json!({
-                "model": &options.model,
-                "base_url": &options.base_url,
-                "stream": options.stream,
-                "max_tokens": options.max_token,
-                "thinking": {
-                    "type": "enabled"
-                },
-                "messages": message_value_list
-        });
+    headers.insert(
+        "Authorization",
+        format!("Bearer {}", &options.api_key).parse().unwrap(),
+    );
 
-        let mut headers = header::HeaderMap::new();
+    let client = reqwest::Client::builder()
+        .default_headers(headers)
+        .build()
+        .map_err(|e| TinyError::RuntimeError)?;
 
-        headers.insert(
-            "Authorization",
-            format!("Bearer {}", &options.api_key).parse().unwrap(),
-        );
+    let chat_url = format!("{}/chat/completions", &options.base_url);
 
-        let client = reqwest::Client::builder()
-            .default_headers(headers)
-            .build()
-            .map_err(|e| TinyError::RuntimeError)?;
+    let mut resp = client
+        .post(chat_url)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| TinyError::RuntimeError)?
+        .bytes_stream();
 
-        let chat_url = format!("{}/chat/completions", &options.base_url);
+    let mut content_builder = String::new();
+    let mut reasoning_builder = String::new();
+    let mut finish_reason = None;
 
-        let mut resp = client
-            .post(chat_url)
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| TinyError::RuntimeError)?
-            .bytes_stream();
+    while let Some(chunk) = resp.next().await {
+        match chunk {
+            Ok(bytes) => {
+                let content_str = String::from_utf8_lossy(&bytes).to_string();
+                let content_parts: Vec<&str> = content_str.trim().split("\n\n").collect();
 
-        let mut content_builder = String::new();
-        let mut reasoning_builder = String::new();
-        let mut finish_reason = None;
+                // println!("{}", content_str);
 
-        while let Some(chunk) = resp.next().await {
-            match chunk {
-                Ok(bytes) => {
-                    let content_str = String::from_utf8_lossy(&bytes).to_string();
-                    let content_parts: Vec<&str> = content_str.trim().split("\n\n").collect();
+                for content_part in content_parts {
+                    let content_part = content_part
+                        .strip_prefix("data: ")
+                        .unwrap_or_default()
+                        .trim();
 
-                    // println!("{}", content_str);
+                    // println!("{}", content_part);
 
-                    for content_part in content_parts {
-                        let content_part = content_part
-                            .strip_prefix("data: ")
-                            .unwrap_or_default()
-                            .trim();
+                    if content_part == "[DONE]" {
+                        break;
+                    } else {
+                        if let Ok(c) = serde_json::from_str::<Chunk>(content_part) {
+                            let first_choice = c.choices.first().unwrap();
 
-                        // println!("{}", content_part);
+                            if let Some(content) = &first_choice.delta.content {
+                                content_builder.push_str(&content.clone());
+                            }
 
-                        if content_part == "[DONE]" {
-                            break;
-                        } else {
-                            if let Ok(c) = serde_json::from_str::<Chunk>(content_part) {
-                                let first_choice = c.choices.first().unwrap();
+                            if let Some(reasoning) = &first_choice.delta.reasoning {
+                                reasoning_builder.push_str(&reasoning.clone());
+                            }
 
-                                if let Some(content) = &first_choice.delta.content {
-                                    content_builder.push_str(&content.clone());
-                                }
+                            if let Some(fr) = &first_choice.delta.finish_reason {
+                                finish_reason = Some(fr.to_string())
+                            }
 
-                                if let Some(reasoning) = &first_choice.delta.reasoning {
-                                    reasoning_builder.push_str(&reasoning.clone());
-                                }
-
-                                if let Some(fr) = &first_choice.delta.finish_reason {
-                                    finish_reason = Some(fr.to_string())
-                                }
-
-                                if finish_reason.is_none() {
-                                    chunk_sender
-                                        .send(MessageChunk::Chunk {
-                                            content: first_choice.delta.content.clone(),
-                                            reasoning_content: first_choice.delta.reasoning.clone(),
-                                            tool_calls: None,
-                                        })
-                                        .await
-                                        .map_err(|e| TinyError::RuntimeError)?;
-                                }
+                            if finish_reason.is_none() {
+                                chunk_sender
+                                    .send(MessageChunk::Chunk {
+                                        content: first_choice.delta.content.clone(),
+                                        reasoning_content: first_choice.delta.reasoning.clone(),
+                                        tool_calls: None,
+                                    })
+                                    .await
+                                    .map_err(|e| TinyError::RuntimeError)?;
                             }
                         }
                     }
                 }
-                Err(e) => {}
-            };
-        }
-
-        Ok(Message::AssistantMessage {
-            content: if content_builder.len() > 0 {
-                Some(content_builder)
-            } else {
-                None
-            },
-            reasoning_content: if reasoning_builder.len() > 0 {
-                Some(reasoning_builder)
-            } else {
-                None
-            },
-            reasoning_details: None,
-            tool_calls: None,
-            finished_reason: match finish_reason {
-                Some(fr) => {
-                    if fr == "tool_call" {
-                        FinishReason::ToolCall
-                    } else {
-                        FinishReason::Other(fr)
-                    }
-                }
-                _ => FinishReason::Other("".to_string()),
-            },
-        })
+            }
+            Err(e) => {}
+        };
     }
+
+    Ok(Message::AssistantMessage {
+        content: if content_builder.len() > 0 {
+            Some(content_builder)
+        } else {
+            None
+        },
+        reasoning_content: if reasoning_builder.len() > 0 {
+            Some(reasoning_builder)
+        } else {
+            None
+        },
+        reasoning_details: None,
+        tool_calls: None,
+        finished_reason: match finish_reason {
+            Some(fr) => {
+                if fr == "tool_call" {
+                    FinishReason::ToolCall
+                } else {
+                    FinishReason::Other(fr)
+                }
+            }
+            _ => FinishReason::Other("".to_string()),
+        },
+    })
 }
