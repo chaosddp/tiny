@@ -1,5 +1,19 @@
+use std::{
+    io::Write,
+    sync::{Arc, Mutex},
+};
+
+use tokio::sync::mpsc;
+
+use crate::{
+    core::common::{ChatClient, ChatOptions, Message, MessageChunk, tiny_loop},
+    openai::OpenaiChatClient,
+};
+
 // mod base;
 mod core;
+mod openai;
+// mod ollama;
 mod lua_helpers;
 
 // use luaenv::lua::{Lua, LuaExternalResult, LuaResult};
@@ -41,4 +55,40 @@ async fn main() {
     //     .unwrap();
 
     // env.exec_script("t.lua").await.unwrap();
+
+    let options = Arc::new(ChatOptions {
+        model: "qwen3.5".to_string(),
+        base_url: "http://localhost:11434/v1".to_string(),
+        api_key: "ollama".to_string(),
+        stream: true,
+        max_token: 1024_000,
+    });
+
+    let messages = vec![
+        Message::SystemMessage("You are a helpful assistant.".to_string()),
+        Message::UserMessage(core::common::UserMessage::Text("hello!".into())),
+    ];
+
+    let (tx, mut rx) = mpsc::channel::<MessageChunk>(1024);
+
+    tokio::spawn(async move { tiny_loop::<OpenaiChatClient>(options, messages, tx).await });
+
+    while let Some(msg) = rx.recv().await {
+        match msg {
+            MessageChunk::Chunk {
+                content,
+                reasoning_content,
+                tool_calls,
+            } => {
+                if let Some(c) = content {
+                    print!("{}", c);
+                    std::io::stdout().flush().unwrap();
+                } else if let Some(rc) = reasoning_content {
+                    print!("{}", rc);
+                    std::io::stdout().flush().unwrap();
+                }
+            }
+            _ => {}
+        }
+    }
 }

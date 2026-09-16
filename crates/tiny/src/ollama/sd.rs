@@ -1,38 +1,8 @@
 use std::collections::{BTreeMap, HashMap};
 
-use serde::{Deserialize, Serialize, ser::SerializeMap};
+use serde::{Serialize, ser::SerializeMap};
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ImageDetail {
-    Auto,
-    Low,
-    High,
-}
-
-impl Default for ImageDetail {
-    fn default() -> Self {
-        ImageDetail::Auto
-    }
-}
-
-#[derive(Debug)]
-pub enum ContentPart {
-    Text(String),
-    Image { url: String, detail: ImageDetail },
-    Video(String),
-    File(String),
-}
-
-pub type RichContent = Vec<ContentPart>;
-
-// impl<'de> Deserialize<'de> for ContentPart {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: serde::Deserializer<'de> {
-//         deserializer.
-//     }
-// }
+use crate::core::request::{ContentPart, ImageDetail};
 
 impl Serialize for ContentPart {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -79,18 +49,6 @@ impl Serialize for ContentPart {
         map.end()
     }
 }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// pub enum UserMessage {
-//     Text(String),
-//     Rich(RichContent),
-// }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// pub enum Message {
-//     SystemMessage(String),
-//     UserMessage(),
-// }
 
 #[cfg(test)]
 mod tests {
