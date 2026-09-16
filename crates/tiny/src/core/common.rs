@@ -70,12 +70,45 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
+pub enum ReasoningEffort {
+    Low,
+    Medium,
+    High,
+    Other(String),
+}
+
+#[derive(Debug, Clone)]
+pub enum ThinkingType {
+    Enabled,
+    Disabled,
+    Adaptive,
+    Other(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct ThinkingOptions {
+    pub t_type: ThinkingType,
+    pub budget_tokens: u32,
+}
+
+impl Default for ThinkingOptions {
+    fn default() -> Self {
+        Self {
+            t_type: ThinkingType::Enabled,
+            budget_tokens: 8192,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ChatOptions {
     pub model: String,
     pub base_url: String,
     pub api_key: String,
     pub stream: bool,
     pub max_token: u32,
+    pub reasoning_effort: Option<ReasoningEffort>,
+    pub thinking: Option<ThinkingOptions>,
 }
 
 impl Default for ChatOptions {
@@ -86,6 +119,8 @@ impl Default for ChatOptions {
             api_key: std::env::var("TINY_DEFAULT_API_KEY").unwrap_or(Default::default()),
             stream: true,
             max_token: 8000,
+            reasoning_effort: None,
+            thinking: Some(Default::default()),
         }
     }
 }

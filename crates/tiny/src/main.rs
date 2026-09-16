@@ -65,13 +65,13 @@ async fn main() {
         model: "qwen3.5".to_string(),
         base_url: "http://localhost:11434/v1".to_string(),
         api_key: "ollama".to_string(),
-        stream: true,
         max_token: 1024_000,
+        ..Default::default()
     };
 
     let messages = vec![
         Message::SystemMessage("You are a helpful assistant.".to_string()),
-        Message::UserMessage(core::common::UserMessage::Text("hello!".into())),
+        Message::UserMessage(core::common::UserMessage::Text("why is sky blue?".into())),
     ];
     let (tx, mut rx) = mpsc::channel::<MessageChunk>(1024);
 

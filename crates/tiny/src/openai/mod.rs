@@ -1,12 +1,17 @@
+use std::str::FromStr;
+
 use futures_util::StreamExt;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{
+    Value::{self, Null},
+    json,
+};
 use tokio::sync::mpsc;
 
 use crate::core::common::{
-    ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk, TinyError,
-    ToolCall, UserMessage,
+    ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk, ReasoningEffort,
+    ThinkingOptions, ThinkingType, TinyError, ToolCall, UserMessage,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -150,6 +155,19 @@ fn message_to_json_value(message: &Message) -> serde_json::Value {
     }
 }
 
+#[inline]
+fn build_thinking_option(options: &ThinkingOptions) -> Value {
+    return json!({
+        "type": match &options.t_type {
+            ThinkingType::Enabled=>"enabled",
+            ThinkingType::Disabled=>"disabled",
+            ThinkingType::Adaptive=>"adaptive",
+            ThinkingType::Other(s)=>s,
+        },
+        "budget_tokens": &options.budget_tokens
+    });
+}
+
 pub async fn chat(
     options: &ChatOptions,
     messages: &Vec<Message>,
@@ -163,9 +181,17 @@ pub async fn chat(
             "base_url": &options.base_url,
             "stream": options.stream,
             "max_tokens": options.max_token,
-            "thinking": {
-                "type": "enabled"
-            },
+            "thinking": if let Some(to) = &options.thinking {
+                build_thinking_option(&to)
+            } else {Null},
+            "reasoning_effort": if let Some(re) = &options.reasoning_effort {
+                Value::from_str(match re {
+                    ReasoningEffort::Low=>"low",
+                    ReasoningEffort::Medium=>"medium",
+                    ReasoningEffort::High=>"high",
+                    ReasoningEffort::Other(s)=>s
+                }).unwrap()
+            } else {Null},
             "messages": message_value_list
     });
 
