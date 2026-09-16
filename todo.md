@@ -1,0 +1,5 @@
+- [] tool executor: execute tool in lua env
+- [] error handling
+- [] logging
+- [] rust + lua integration
+- [] life cycle management
