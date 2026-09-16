@@ -109,6 +109,7 @@ pub struct ChatOptions {
     pub max_token: u32,
     pub reasoning_effort: Option<ReasoningEffort>,
     pub thinking: Option<ThinkingOptions>,
+    pub include_usage: bool,
 }
 
 impl Default for ChatOptions {
@@ -118,6 +119,7 @@ impl Default for ChatOptions {
             base_url: std::env::var("TINY_DEFAULT_BASE_URL").unwrap_or(Default::default()),
             api_key: std::env::var("TINY_DEFAULT_API_KEY").unwrap_or(Default::default()),
             stream: true,
+            include_usage: true,
             max_token: 8000,
             reasoning_effort: None,
             thinking: Some(Default::default()),

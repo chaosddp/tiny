@@ -14,7 +14,7 @@ use crate::core::common::{
     ThinkingOptions, ThinkingType, TinyError, ToolCall, UserMessage,
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChoiceDelta {
     pub role: Option<String>,
     pub content: Option<String>,
@@ -22,13 +22,13 @@ pub struct ChoiceDelta {
     pub finish_reason: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Choice {
     pub index: u32,
     pub delta: ChoiceDelta,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Chunk {
     id: String,
     object: String,
@@ -192,6 +192,7 @@ pub async fn chat(
                     ReasoningEffort::Other(s)=>s
                 }).unwrap()
             } else {Null},
+            "include_usage": options.include_usage,
             "messages": message_value_list
     });
 
@@ -243,24 +244,43 @@ pub async fn chat(
                         if let Ok(c) = serde_json::from_str::<Chunk>(content_part) {
                             let first_choice = c.choices.first().unwrap();
 
-                            if let Some(content) = &first_choice.delta.content {
+                            if let Some(content) = &first_choice.delta.content
+                                && content.len() > 0
+                            {
                                 content_builder.push_str(&content.clone());
                             }
 
-                            if let Some(reasoning) = &first_choice.delta.reasoning {
+                            if let Some(reasoning) = &first_choice.delta.reasoning
+                                && reasoning.len() > 0
+                            {
                                 reasoning_builder.push_str(&reasoning.clone());
                             }
 
-                            if let Some(fr) = &first_choice.delta.finish_reason {
+                            if let Some(fr) = &first_choice.delta.finish_reason
+                                && fr.len() > 0
+                            {
                                 finish_reason = Some(fr.to_string())
                             }
 
                             if finish_reason.is_none() {
                                 chunk_sender
                                     .send(MessageChunk::Chunk {
-                                        content: first_choice.delta.content.clone(),
-                                        reasoning_content: first_choice.delta.reasoning.clone(),
-                                        tool_calls: None,
+                                        content: if let Some(c) = &first_choice.delta.content
+                                            && c.len() > 0
+                                        {
+                                            Some(c.to_string())
+                                        } else {
+                                            None
+                                        },
+                                        reasoning_content: if let Some(rc) =
+                                            &first_choice.delta.reasoning
+                                            && rc.len() > 0
+                                        {
+                                            Some(rc.to_string())
+                                        } else {
+                                            None
+                                        },
+                                        tool_calls: None, // TODO: impl later
                                     })
                                     .await
                                     .map_err(|e| TinyError::RuntimeError)?;

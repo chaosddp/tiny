@@ -93,6 +93,7 @@ async fn main() {
                     print!("{}", rc);
                     std::io::stdout().flush().unwrap();
                 }
+                // println!("{:?}", content);
             }
             MessageChunk::Error(e) => {
                 println!("{}", e)
