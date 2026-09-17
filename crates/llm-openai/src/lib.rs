@@ -185,12 +185,12 @@ pub async fn chat(
                 build_thinking_option(&to)
             } else {Null},
             "reasoning_effort": if let Some(re) = &options.reasoning_effort {
-                Value::from_str(match re {
+                json!(match re {
                     ReasoningEffort::Low=>"low",
                     ReasoningEffort::Medium=>"medium",
                     ReasoningEffort::High=>"high",
                     ReasoningEffort::Other(s)=>s
-                }).unwrap()
+                })
             } else {Null},
             "include_usage": options.include_usage,
             "messages": message_value_list
