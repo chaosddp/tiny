@@ -7,7 +7,7 @@ use serde_json::{
 };
 use tokio::sync::mpsc;
 
-use agent_base::core::{
+use super::core::{
     ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk, ReasoningEffort,
     ThinkingOptions, ThinkingType, TinyError, ToolCall, UserMessage,
 };
@@ -204,7 +204,7 @@ pub async fn chat(
     let client = reqwest::Client::builder()
         .default_headers(headers)
         .build()
-        .map_err(|e| TinyError::RuntimeError)?;
+        .map_err(|_e| TinyError::RuntimeError)?;
 
     let chat_url = format!("{}/chat/completions", &options.base_url);
 
@@ -213,7 +213,7 @@ pub async fn chat(
         .json(&payload)
         .send()
         .await
-        .map_err(|e| TinyError::RuntimeError)?
+        .map_err(|_e| TinyError::RuntimeError)?
         .bytes_stream();
 
     let mut content_builder = String::new();
@@ -281,13 +281,13 @@ pub async fn chat(
                                         tool_calls: None, // TODO: impl later
                                     })
                                     .await
-                                    .map_err(|e| TinyError::RuntimeError)?;
+                                    .map_err(|_e| TinyError::RuntimeError)?;
                             }
                         }
                     }
                 }
             }
-            Err(e) => {}
+            Err(_e) => {}
         };
     }
 

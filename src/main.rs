@@ -1,21 +1,19 @@
+mod core;
+mod luaenv;
+mod openai;
+
 use std::io::Write;
 
 use luaenv::{
     env::LuaEnv,
-    lua::{
-        Lua, LuaTable,
-        LuaValue::{self, Nil},
-    },
+    lua::{Lua, LuaTable, LuaValue::Nil},
 };
 
-use agent_base::core::{
+use core::{
     ChatOptions, Message, MessageChunk, ReasoningEffort, ThinkingOptions, ThinkingType, TinyError,
     UserMessage, tiny_loop,
 };
 use tokio::sync::mpsc;
-
-// mod ollama;
-mod lua_helpers;
 
 // use luaenv::lua::{Lua, LuaExternalResult, LuaResult};
 
@@ -33,7 +31,7 @@ mod lua_helpers;
 //     Ok(client)
 // }
 
-async fn execute_tool(name: &str, id: &str, args: Option<&str>) -> Result<String, TinyError> {
+async fn execute_tool(name: &str, _id: &str, _args: Option<&str>) -> Result<String, TinyError> {
     if name == "weather" {
         Ok("30 ℃".to_string())
     } else {
@@ -181,16 +179,16 @@ async fn main() {
     ];
     let (tx, mut rx) = mpsc::channel::<MessageChunk>(1024);
 
-    tokio::spawn(async move {
-        tiny_loop(&options, messages, provider_openai::chat, execute_tool, tx).await
-    });
+    tokio::spawn(
+        async move { tiny_loop(&options, messages, openai::chat, execute_tool, tx).await },
+    );
 
     while let Some(msg) = rx.recv().await {
         match msg {
             MessageChunk::Chunk {
                 content,
                 reasoning_content,
-                tool_calls,
+                tool_calls: _,
             } => {
                 if let Some(c) = content {
                     print!("{}", c);
