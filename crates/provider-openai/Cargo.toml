@@ -1,10 +1,10 @@
 [package]
-name = "llm-openai"
+name = "provider-openai"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-llm = { path = "../llm" }
+agent-base ={ path="../agent-base" }
 
 bytes = { workspace = true }
 thiserror = { workspace = true }

@@ -8,7 +8,7 @@ use luaenv::{
     },
 };
 
-use llm::core::{
+use agent_base::core::{
     ChatOptions, Message, MessageChunk, ReasoningEffort, ThinkingOptions, ThinkingType, TinyError,
     UserMessage, tiny_loop,
 };
@@ -181,9 +181,9 @@ async fn main() {
     ];
     let (tx, mut rx) = mpsc::channel::<MessageChunk>(1024);
 
-    tokio::spawn(
-        async move { tiny_loop(&options, messages, llm_openai::chat, execute_tool, tx).await },
-    );
+    tokio::spawn(async move {
+        tiny_loop(&options, messages, provider_openai::chat, execute_tool, tx).await
+    });
 
     while let Some(msg) = rx.recv().await {
         match msg {

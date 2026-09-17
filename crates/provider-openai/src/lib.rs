@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use futures_util::StreamExt;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
@@ -9,7 +7,7 @@ use serde_json::{
 };
 use tokio::sync::mpsc;
 
-use llm::core::{
+use agent_base::core::{
     ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk, ReasoningEffort,
     ThinkingOptions, ThinkingType, TinyError, ToolCall, UserMessage,
 };

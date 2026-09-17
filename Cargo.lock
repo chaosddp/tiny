@@ -3,6 +3,17 @@
 version = 4
 
 [[package]]
+name = "agent-base"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -711,35 +722,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
-name = "llm"
-version = "0.1.0"
-dependencies = [
- "futures-util",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "llm-ollama"
-version = "0.1.0"
-
-[[package]]
-name = "llm-openai"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "futures-util",
- "llm",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -970,6 +952,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "provider-openai"
+version = "0.1.0"
+dependencies = [
+ "agent-base",
+ "bytes",
+ "futures-util",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -1491,12 +1487,12 @@ dependencies = [
 name = "tiny"
 version = "0.1.0"
 dependencies = [
+ "agent-base",
  "async-trait",
  "bytes",
  "futures-util",
- "llm",
- "llm-openai",
  "luaenv",
+ "provider-openai",
  "reqwest",
  "serde",
  "serde_json",

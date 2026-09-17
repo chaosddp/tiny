@@ -5,8 +5,8 @@ edition = "2024"
 
 [dependencies]
 luaenv = { path = "../luaenv" }
-llm = { path = "../llm" }
-llm-openai = { path="../llm-openai" }
+agent-base = { path = "../agent-base" }
+provider-openai = { path = "../provider-openai" }
 
 bytes = { workspace = true }
 thiserror = { workspace = true }
