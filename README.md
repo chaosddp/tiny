@@ -1,0 +1,1 @@
+Personal project that used to learn rust and agent.

@@ -1,36 +1,40 @@
--- local success, b = pcall(require, "b")
+---@class ChatOptions
+---@field provider         string                                                                       @not supported yet, now only support openai compatible providers
+---@field model            string                                                                       @model name to use
+---@field base_url         string                                                                       @base url of the model provider
+---@field api_key          string                                                                       @api key from provider
+---@field max_tokens       integer                                                                      @max tokens for each session, default is 8000
+---@field reasoning_effort "low" | "medium" | "high" | "customized_effort_name_from_different_provider" @effort when reasoning, default is low
+---@field thinking         ThinkingOptions                                                              @options of thinking
+local ChatOptions = nil
 
--- tiny.test()
+---@class ThinkingOptions
+---@field type          "enabled" | "disabled" | "adaptive" | "customized_type_from_different_provider" @ type of thinking, default is "enabled"
+---@field budget_tokens integer                                                                         @tokens for thinking
+local ThinkingOptions = nil
 
--- tiny.a.b.test()
+---@class ToolParameter
+---@field type     string  @type of the parameter
+---@field desc     string  @description of the paremeter
+---@field required boolean @if the parameter is required, default is false
+local ToolParameter = nil
 
--- print(tiny.a.b.pi)
+---@class Tool
+---@field name       string                       @name of the tool
+---@field desc       string                       @description of the tool
+---@field func       function                     @function to call
+---@field parameters table<string, ToolParameter> @parameters of this tool, key if the name of parameter, value if the parameter information
+local Tool = nil
 
--- print(package.path)
+---@class TinyConfiguration
+---@field chat  ChatOptions
+---@field tools Tool[]
+local TinyConfiguration = nil
 
--- if success then
---     print(b.version)
--- end
-
--- function sum(a, b)
---     return a + b
--- end
-
-
--- local client = tiny.http.newClient()
-
--- if client then 
---     local resp = client:get("https://www.baidu.com")
-
---     print(resp:status())
-
---     print(resp:text())
--- end
-
-function tools()
-
+function get_weather(city)
 end
 
+---@param t TinyConfiguration
 function tiny.conf(t)
     t.chat.provider = "openai" -- use openai compatible provider
     t.chat.model = "qwen3.5"
@@ -38,33 +42,43 @@ function tiny.conf(t)
     t.chat.api_key = "ollama"
 
     t.chat.max_tokens = 10240000
-    
+
     t.chat.thinking.type = "enabled"
     t.chat.thinking.budget_tokens = 8192
 
     t.chat.reasoning_effort = "low" -- low, medium, hight, any other string
 
-    t.system_prompt = "myprompt"
+    -- t.system_prompt = "myprompt"
 
-    t.tools = tools()
+    t.tools = {
+        {
+            name = "get_weather",           -- name of the tool
+            desc = "long long description", -- descript of the tool
+            func = get_weather,             -- real function to call
+            parameters = {
+                {
+                    city = {
+                        ["type"] = "string",
+                        desc = "city name",
+                        required = true
+                    }
+                }
+            }
+        }
+    }
 end
 
 -- called each loop cycle, usage:
 -- 1. cancel current loop
 -- 2. retry from beginning
 function tiny.on_inner_loop_count(n)
-
 end
 
 function tiny.on_response_error(e)
-
 end
 
 function tiny.before_chat(ctx)
-
 end
 
 function tiny.after_chat(ctx)
-
 end
-
