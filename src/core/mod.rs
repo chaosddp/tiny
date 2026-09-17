@@ -8,6 +8,7 @@ pub enum TinyError {
     RuntimeError,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ImageDetail {
     Auto,
@@ -22,6 +23,7 @@ impl Default for ImageDetail {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ContentPart {
     Text(String),
@@ -32,6 +34,7 @@ pub enum ContentPart {
 
 pub type RichContent = Vec<ContentPart>;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum UserMessage {
     Text(String),
@@ -127,6 +130,7 @@ impl Default for ChatOptions {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum MessageChunk {
     Chunk {

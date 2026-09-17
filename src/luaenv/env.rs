@@ -3,6 +3,7 @@ use std::{fs::File, io::Read, path::Path};
 use mlua::{MaybeSend, prelude::*};
 
 /// Lua environment wrapper
+#[allow(dead_code)]
 pub struct LuaEnv {
     /// name of env, it will be used as root namespace name (lua table),
     /// so give it a reasonable name.
@@ -25,6 +26,7 @@ impl LuaEnv {
     }
 }
 
+#[allow(dead_code)]
 impl LuaEnv {
     pub fn weak(&self) -> WeakLua {
         self.lua.weak()
