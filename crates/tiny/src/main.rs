@@ -1,15 +1,9 @@
-use std::{
-    io::Write,
-    sync::{Arc, Mutex},
-};
+use std::io::Write;
 
 use tokio::sync::mpsc;
 
-use crate::core::common::{ChatOptions, Message, MessageChunk, TinyError, tiny_loop};
+use llm::core::{ChatOptions, Message, MessageChunk, TinyError, UserMessage, tiny_loop};
 
-// mod base;
-mod core;
-mod openai;
 // mod ollama;
 mod lua_helpers;
 
@@ -71,12 +65,12 @@ async fn main() {
 
     let messages = vec![
         Message::SystemMessage("You are a helpful assistant.".to_string()),
-        Message::UserMessage(core::common::UserMessage::Text("why is sky blue?".into())),
+        Message::UserMessage(UserMessage::Text("why is sky blue?".into())),
     ];
     let (tx, mut rx) = mpsc::channel::<MessageChunk>(1024);
 
     tokio::spawn(
-        async move { tiny_loop(&options, messages, openai::chat, execute_tool, tx).await },
+        async move { tiny_loop(&options, messages, llm_openai::chat, execute_tool, tx).await },
     );
 
     while let Some(msg) = rx.recv().await {

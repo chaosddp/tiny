@@ -1,12 +1,10 @@
 [package]
-name = "tiny"
+name = "llm-openai"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-luaenv = { path = "../luaenv" }
 llm = { path = "../llm" }
-llm-openai = { path="../llm-openai" }
 
 bytes = { workspace = true }
 thiserror = { workspace = true }
@@ -15,5 +13,3 @@ reqwest = { workspace = true, features = ["json", "stream"] }
 futures-util = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-
-async-trait = { workspace = true }

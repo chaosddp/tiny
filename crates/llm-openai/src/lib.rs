@@ -9,7 +9,7 @@ use serde_json::{
 };
 use tokio::sync::mpsc;
 
-use crate::core::common::{
+use llm::core::{
     ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk, ReasoningEffort,
     ThinkingOptions, ThinkingType, TinyError, ToolCall, UserMessage,
 };

@@ -711,6 +711,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
+name = "llm"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "llm-ollama"
+version = "0.1.0"
+
+[[package]]
+name = "llm-openai"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "futures-util",
+ "llm",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1465,6 +1494,8 @@ dependencies = [
  "async-trait",
  "bytes",
  "futures-util",
+ "llm",
+ "llm-openai",
  "luaenv",
  "reqwest",
  "serde",
