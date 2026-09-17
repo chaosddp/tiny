@@ -45,6 +45,7 @@ pub enum UserMessage {
 pub struct ToolCall {
     pub name: String,
     pub id: String,
+    pub index: u32,
     pub arguments: Option<String>,
 }
 
@@ -141,9 +142,29 @@ pub enum MessageChunk {
     Error(String),
 }
 
+#[derive(Debug)]
+pub struct ToolParameter {
+    pub name: String,
+    pub p_type: String,
+    pub description: String,
+    pub required: bool,
+}
+
+#[derive(Debug)]
+pub struct Tool {
+    pub name: String,
+    pub description: String,
+    pub parameters: Vec<ToolParameter>,
+}
+
 // short-cut of the async chat function type
 pub trait ChatAsyncFn:
-    AsyncFn(&ChatOptions, &Vec<Message>, mpsc::Sender<MessageChunk>) -> Result<Message, TinyError>
+    AsyncFn(
+    &ChatOptions,
+    &Vec<Message>,
+    &Vec<Tool>,
+    mpsc::Sender<MessageChunk>,
+) -> Result<Message, TinyError>
 {
 }
 
@@ -152,6 +173,7 @@ impl<F> ChatAsyncFn for F where
     F: AsyncFn(
         &ChatOptions,
         &Vec<Message>,
+        &Vec<Tool>,
         mpsc::Sender<MessageChunk>,
     ) -> Result<Message, TinyError>
 {
@@ -165,6 +187,7 @@ pub async fn tiny_loop<C, T>(
     options: &ChatOptions,
     mut messages: Vec<Message>,
     chat: C,
+    tools: &Vec<Tool>,
     tool_execute: T,
     chunk_sender: mpsc::Sender<MessageChunk>,
 ) -> Result<Vec<Message>, TinyError>
@@ -173,7 +196,7 @@ where
     T: ToolAsyncFn,
 {
     loop {
-        let msg = chat(options, &messages, chunk_sender.clone()).await?;
+        let msg = chat(options, &messages, tools, chunk_sender.clone()).await?;
 
         if let Message::AssistantMessage {
             content: _,

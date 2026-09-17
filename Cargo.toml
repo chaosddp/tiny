@@ -3,6 +3,8 @@ name = "tiny"
 version = "0.1.0"
 edition = "2024"
 
+default-run = "tiny"
+
 [dependencies]
 
 bytes = "1.12.1"
@@ -29,3 +31,4 @@ ratatui = "0.30.2"
 crossterm = "0.29.0"
 
 async-trait = "0.1.92"
+env_logger = { version = "0.11.11", features = ["auto-color", "humantime"] }

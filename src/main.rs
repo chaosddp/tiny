@@ -8,12 +8,15 @@ use luaenv::{
     env::LuaEnv,
     lua::{Lua, LuaTable, LuaValue::Nil},
 };
+use mlua::Function;
 
 use core::{
     ChatOptions, Message, MessageChunk, ReasoningEffort, ThinkingOptions, ThinkingType, TinyError,
     UserMessage, tiny_loop,
 };
 use tokio::sync::mpsc;
+
+use crate::core::{Tool, ToolParameter};
 
 // use luaenv::lua::{Lua, LuaExternalResult, LuaResult};
 
@@ -32,8 +35,16 @@ use tokio::sync::mpsc;
 // }
 
 async fn execute_tool(name: &str, _id: &str, _args: Option<&str>) -> Result<String, TinyError> {
-    if name == "weather" {
-        Ok("30 ℃".to_string())
+    if name == "get_weather" {
+        Ok("Condition: Cloudy
+        Temperature: 17°C (feels comfortable/cool)
+        Humidity: 85%
+        Wind: East at 4 mph
+        High Temperature: 23°C
+        Low Temperature: 15°C
+        Tonight: Temperatures will drop to around 15°C and 14°C later tonight.
+        "
+        .to_string())
     } else {
         Ok("invalid".to_string())
     }
@@ -159,8 +170,60 @@ impl From<(&Lua, ChatOptions)> for WLuaTable {
     }
 }
 
+struct Tools(Vec<Tool>);
+
+impl From<&LuaTable> for Tools {
+    fn from(value: &LuaTable) -> Self {
+        let mut tools = vec![];
+
+        for pair in value.pairs::<String, LuaTable>() {
+            if let Ok((name, tool_definition)) = pair {
+                let description = tool_definition
+                    .get::<String>("desc")
+                    .unwrap_or(name.clone());
+
+                if let Ok(func) = tool_definition.get::<Function>("func") {
+                    // here it is a valid tool definition
+                    let mut tool = Tool {
+                        name: name,
+                        description: description,
+                        parameters: vec![],
+                    };
+
+                    if let Ok(parameters) = tool_definition.get::<LuaTable>("parameters") {
+                        for p_pair in parameters.pairs::<String, LuaTable>() {
+                            if let Ok((p_name, p_definition)) = p_pair {
+                                let p_type = p_definition
+                                    .get::<String>("type")
+                                    .unwrap_or("string".to_string());
+                                let p_desc =
+                                    p_definition.get::<String>("desc").unwrap_or(p_name.clone());
+                                let p_required =
+                                    p_definition.get::<bool>("required").unwrap_or_default();
+
+                                tool.parameters.push(ToolParameter {
+                                    name: p_name,
+                                    p_type: p_type,
+                                    description: p_desc,
+                                    required: p_required,
+                                });
+                            }
+                        }
+                    }
+
+                    tools.push(tool);
+                }
+            }
+        }
+
+        Tools(tools)
+    }
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    env_logger::init();
+
     let env = LuaEnv::new("tiny").unwrap();
 
     // load the entry script
@@ -175,29 +238,42 @@ async fn main() {
 
     let messages = vec![
         Message::SystemMessage("You are a helpful assistant.".to_string()),
-        Message::UserMessage(UserMessage::Text("why is sky blue?".into())),
+        Message::UserMessage(UserMessage::Text("what is the weather in Beijing?".into())),
     ];
+
+    let tools = Tools::from(
+        &config_table
+            .get::<LuaTable>("tools")
+            .unwrap_or(env.weak().upgrade().create_table().unwrap()),
+    )
+    .0;
+
     let (tx, mut rx) = mpsc::channel::<MessageChunk>(1024);
 
-    tokio::spawn(
-        async move { tiny_loop(&options, messages, openai::chat, execute_tool, tx).await },
-    );
+    tokio::spawn(async move {
+        tiny_loop(&options, messages, openai::chat, &tools, execute_tool, tx).await
+    });
 
     while let Some(msg) = rx.recv().await {
         match msg {
             MessageChunk::Chunk {
                 content,
                 reasoning_content,
-                tool_calls: _,
+                tool_calls,
             } => {
                 if let Some(c) = content {
                     print!("{}", c);
                     std::io::stdout().flush().unwrap();
-                } else if let Some(rc) = reasoning_content {
+                }
+
+                if let Some(rc) = reasoning_content {
                     print!("{}", rc);
                     std::io::stdout().flush().unwrap();
                 }
-                // println!("{:?}", content);
+
+                if let Some(tc_list) = tool_calls {
+                    println!("\n{:?}", tc_list);
+                }
             }
             MessageChunk::Error(e) => {
                 println!("{}", e)

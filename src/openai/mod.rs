@@ -1,11 +1,16 @@
+use std::collections::BTreeMap;
+
 use futures_util::StreamExt;
+use log::debug;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::{
     Value::{self, Null},
-    json,
+    json, to_value,
 };
 use tokio::sync::mpsc;
+
+use crate::core::{Tool, ToolParameter};
 
 use super::core::{
     ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk, ReasoningEffort,
@@ -13,27 +18,42 @@ use super::core::{
 };
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChoiceDelta {
+struct OpenaiToolFunction {
+    name: String,
+    arguments: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct OpenaiToolCall {
+    id: String,
+    index: u32,
+    r#type: String,
+    function: OpenaiToolFunction,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct OpenaiChoiceDelta {
     pub role: Option<String>,
     pub content: Option<String>,
     pub reasoning: Option<String>,
+    pub tool_calls: Option<Vec<OpenaiToolCall>>,
     pub finish_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Choice {
+struct OpenaiChoice {
     pub index: u32,
-    pub delta: ChoiceDelta,
+    pub delta: OpenaiChoiceDelta,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Chunk {
+struct OpenaiChunk {
     id: String,
     object: String,
     created: u64,
     model: String,
     system_fingerprint: String,
-    choices: Vec<Choice>,
+    choices: Vec<OpenaiChoice>,
 }
 
 #[inline]
@@ -166,13 +186,57 @@ fn build_thinking_option(options: &ThinkingOptions) -> Value {
     });
 }
 
+fn tool_parameter_to_json_value(tool_param: &ToolParameter) -> Value {
+    json!({
+        "type": &tool_param.p_type,
+        "description": &tool_param.description
+    })
+}
+
+fn tool_to_json_value(tool: &Tool) -> Value {
+    let parameters = if tool.parameters.len() > 0 {
+        let mut map = BTreeMap::new();
+
+        for p in tool.parameters.iter() {
+            map.insert(p.name.clone(), tool_parameter_to_json_value(p));
+        }
+
+        to_value(map).unwrap()
+    } else {
+        Null
+    };
+
+    let required_parameters: Vec<String> = tool
+        .parameters
+        .iter()
+        .filter(|p| p.required)
+        .map(|p| p.name.clone())
+        .collect();
+
+    json!({
+        "type": "function",
+        "function": {
+            "name": &tool.name,
+            "description": &tool.description,
+            "parameters": {
+                "type": "object",
+                "properties": parameters
+            },
+            "required": required_parameters
+        }
+    })
+}
+
 pub async fn chat(
     options: &ChatOptions,
     messages: &Vec<Message>,
+    tools: &Vec<Tool>,
     chunk_sender: mpsc::Sender<MessageChunk>,
 ) -> Result<Message, TinyError> {
     let message_value_list: Vec<Value> =
         messages.iter().map(|m| message_to_json_value(m)).collect();
+
+    let tool_definitions: Vec<Value> = tools.iter().map(|t| tool_to_json_value(t)).collect();
 
     let payload = json!({
             "model": &options.model,
@@ -191,7 +255,8 @@ pub async fn chat(
                 })
             } else {Null},
             "include_usage": options.include_usage,
-            "messages": message_value_list
+            "messages": message_value_list,
+            "tools": tool_definitions
     });
 
     let mut headers = header::HeaderMap::new();
@@ -218,6 +283,7 @@ pub async fn chat(
 
     let mut content_builder = String::new();
     let mut reasoning_builder = String::new();
+    let mut tool_calls: Vec<ToolCall> = vec![];
     let mut finish_reason = None;
 
     while let Some(chunk) = resp.next().await {
@@ -226,7 +292,7 @@ pub async fn chat(
                 let content_str = String::from_utf8_lossy(&bytes).to_string();
                 let content_parts: Vec<&str> = content_str.trim().split("\n\n").collect();
 
-                // println!("{}", content_str);
+                debug!("recive raw chunk: {}", content_str);
 
                 for content_part in content_parts {
                     let content_part = content_part
@@ -234,12 +300,10 @@ pub async fn chat(
                         .unwrap_or_default()
                         .trim();
 
-                    // println!("{}", content_part);
-
                     if content_part == "[DONE]" {
                         break;
                     } else {
-                        if let Ok(c) = serde_json::from_str::<Chunk>(content_part) {
+                        if let Ok(c) = serde_json::from_str::<OpenaiChunk>(content_part) {
                             let first_choice = c.choices.first().unwrap();
 
                             if let Some(content) = &first_choice.delta.content
@@ -260,6 +324,17 @@ pub async fn chat(
                                 finish_reason = Some(fr.to_string())
                             }
 
+                            if let Some(tc_list) = &first_choice.delta.tool_calls {
+                                for tc in tc_list {
+                                    tool_calls.push(ToolCall {
+                                        name: tc.function.name.clone(),
+                                        id: tc.id.clone(),
+                                        index: tc.index,
+                                        arguments: tc.function.arguments.clone(),
+                                    });
+                                }
+                            }
+
                             if finish_reason.is_none() {
                                 chunk_sender
                                     .send(MessageChunk::Chunk {
@@ -278,7 +353,23 @@ pub async fn chat(
                                         } else {
                                             None
                                         },
-                                        tool_calls: None, // TODO: impl later
+                                        tool_calls: if let Some(tc_list) =
+                                            &first_choice.delta.tool_calls
+                                        {
+                                            Some(
+                                                tc_list
+                                                    .iter()
+                                                    .map(|tc| ToolCall {
+                                                        name: tc.function.name.clone(),
+                                                        id: tc.id.clone(),
+                                                        index: tc.index,
+                                                        arguments: tc.function.arguments.clone(),
+                                                    })
+                                                    .collect::<Vec<ToolCall>>(),
+                                            )
+                                        } else {
+                                            None
+                                        },
                                     })
                                     .await
                                     .map_err(|_e| TinyError::RuntimeError)?;
@@ -303,7 +394,11 @@ pub async fn chat(
             None
         },
         reasoning_details: None,
-        tool_calls: None,
+        tool_calls: if tool_calls.len() > 0 {
+            Some(tool_calls)
+        } else {
+            None
+        },
         finished_reason: match finish_reason {
             Some(fr) => {
                 if fr == "tool_call" {

@@ -20,7 +20,6 @@ local ThinkingOptions = nil
 local ToolParameter = nil
 
 ---@class Tool
----@field name       string                       @name of the tool
 ---@field desc       string                       @description of the tool
 ---@field func       function                     @function to call
 ---@field parameters table<string, ToolParameter> @parameters of this tool, key if the name of parameter, value if the parameter information
@@ -28,7 +27,7 @@ local Tool = nil
 
 ---@class TinyConfiguration
 ---@field chat  ChatOptions
----@field tools Tool[]
+---@field tools table<string, Tool>
 local TinyConfiguration = nil
 
 function get_weather(city)
@@ -51,17 +50,14 @@ function tiny.conf(t)
     -- t.system_prompt = "myprompt"
 
     t.tools = {
-        {
-            name = "get_weather",           -- name of the tool
-            desc = "long long description", -- descript of the tool
-            func = get_weather,             -- real function to call
+        get_weather = {
+            desc = "get weather of specified city", -- descript of the tool
+            func = get_weather,                     -- real function to call
             parameters = {
-                {
-                    city = {
-                        ["type"] = "string",
-                        desc = "city name",
-                        required = true
-                    }
+                city = {
+                    ["type"] = "string",
+                    desc = "city name",
+                    required = true
                 }
             }
         }
