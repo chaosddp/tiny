@@ -2,7 +2,10 @@ use std::io::Write;
 
 use luaenv::{
     env::LuaEnv,
-    lua::{LuaTable, LuaValue::Nil},
+    lua::{
+        Lua, LuaTable,
+        LuaValue::{self, Nil},
+    },
 };
 
 use llm::core::{
@@ -81,56 +84,91 @@ impl From<&LuaTable> for WChatOptions {
     }
 }
 
+struct WLuaTable(LuaTable);
+
+impl From<(&Lua, ChatOptions)> for WLuaTable {
+    fn from(value: (&Lua, ChatOptions)) -> Self {
+        let lua = value.0;
+        let options = value.1;
+
+        let config_table = lua.create_table().unwrap();
+
+        // options of chat
+        let chat_options_table = lua.create_table().unwrap();
+
+        // TODO: not supported yet
+        chat_options_table.set("provider", Nil).unwrap();
+        chat_options_table
+            .set("model", options.model.to_string())
+            .unwrap();
+        chat_options_table
+            .set("base_url", options.base_url.to_string())
+            .unwrap();
+        chat_options_table
+            .set("api_key", options.api_key.to_string())
+            .unwrap();
+        chat_options_table
+            .set("max_tokens", options.max_token)
+            .unwrap();
+        chat_options_table
+            .set(
+                "reasoning_effort",
+                match &options.reasoning_effort {
+                    Some(effort) => match effort {
+                        ReasoningEffort::Low => "low",
+                        ReasoningEffort::Medium => "medium",
+                        ReasoningEffort::High => "high",
+                        ReasoningEffort::Other(s) => &s,
+                    },
+                    _ => "low",
+                },
+            )
+            .unwrap();
+
+        let thinking_options_table = lua.create_table().unwrap();
+
+        if let Some(thinking) = &options.thinking {
+            thinking_options_table
+                .set(
+                    "type",
+                    match &thinking.t_type {
+                        ThinkingType::Enabled => "enabled",
+                        ThinkingType::Disabled => "disabled",
+                        ThinkingType::Adaptive => "adaptive",
+                        ThinkingType::Other(s) => &s,
+                    },
+                )
+                .unwrap();
+
+            thinking_options_table
+                .set("budget_tokens", thinking.budget_tokens)
+                .unwrap();
+        } else {
+            thinking_options_table.set("type", "enabled").unwrap();
+            thinking_options_table.set("budget_tokens", 8192).unwrap();
+        }
+
+        chat_options_table
+            .set("thinking", thinking_options_table)
+            .unwrap();
+
+        let tools_table = lua.create_table().unwrap();
+
+        config_table.set("tools", tools_table).unwrap();
+        config_table.set("chat", chat_options_table).unwrap();
+
+        WLuaTable(config_table)
+    }
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let env = LuaEnv::new("tiny").unwrap();
 
-    //     env.add_function("test", t).unwrap();
-    //     env.add_function("a.b.test", t).unwrap();
-    //     env.add_member("a.b.pi", 3.1415).unwrap();
-    //     env.add_package_path("r/?.lua").unwrap();
-
-    //     env.exec_script("t.lua").await.unwrap();
-
-    //     env.call::<()>("print", ("hello", "-", "world"))
-    //         .await
-    //         .unwrap();
-
-    //     let ret = env.call::<i32>("sum", (1, 2)).await.unwrap();
-
-    //     println!("a + b = {}", ret);
-
-    // env.add_function("http.newClient", create_new_http_client)
-    //     .unwrap();
-
-    let config_table = env.weak().upgrade().create_table().unwrap();
-
-    // options of chat
-    let chat_options_table = env.weak().upgrade().create_table().unwrap();
-
-    chat_options_table.set("provider", Nil).unwrap();
-    chat_options_table.set("model", Nil).unwrap();
-    chat_options_table.set("base_url", Nil).unwrap();
-    chat_options_table.set("api_key", Nil).unwrap();
-    chat_options_table.set("max_tokens", 8000).unwrap();
-    chat_options_table.set("reasoning_effort", "low").unwrap();
-
-    let thinking_options_table = env.weak().upgrade().create_table().unwrap();
-
-    thinking_options_table.set("type", "enabled").unwrap();
-    thinking_options_table.set("budget_tokens", 8192).unwrap();
-
-    chat_options_table
-        .set("thinking", thinking_options_table)
-        .unwrap();
-
-    let tools_table = env.weak().upgrade().create_table().unwrap();
-
-    config_table.set("tools", tools_table).unwrap();
-    config_table.set("chat", chat_options_table).unwrap();
-
     // load the entry script
     env.exec_script(".tiny/main.lua").await.unwrap();
+
+    let config_table = WLuaTable::from((&env.weak().upgrade(), ChatOptions::default())).0;
 
     // call the config function
     env.call::<()>("tiny.conf", &config_table).await.unwrap();
