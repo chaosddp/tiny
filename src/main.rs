@@ -1,6 +1,9 @@
 #[cfg(all(feature = "async", feature = "sync"))]
 compile_error!("feature \"async\" and feature \"sync\" cannot be enabled at the same time");
 
+#[cfg(feature = "async")]
+compile_error!("feature \"async\" is not completed.");
+
 mod agent;
 mod core;
 mod luaenv;
@@ -11,7 +14,7 @@ use std::io::Write;
 
 use crate::agent::sync_agent::TinyAgent;
 use crate::core::sync_impl::ChunkReceiver;
-use crate::core::{MessageChunk, TinyError};
+use crate::core::types::{ImageDetail, MessageChunk, TinyError};
 use crate::openai::sync_impl::OpenaiClient;
 
 #[allow(dead_code)]
@@ -80,6 +83,8 @@ impl ChunkReceiver for ConsoleChunkReceiver {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
+
+    
 
     let mut agent = TinyAgent::new(
         "You are a helpful assistant",

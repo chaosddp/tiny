@@ -19,9 +19,9 @@ use serde_json::{
     json, to_value,
 };
 
-use crate::core::{Tool, ToolParameter};
+use crate::core::types::{Tool, ToolParameter};
 
-use super::core::{
+use super::core::types::{
     ContentPart, ImageDetail, Message, ThinkingOptions, ThinkingType, ToolCall, UserMessage,
 };
 
@@ -118,13 +118,13 @@ fn part_to_value(part: &ContentPart) -> Value {
 
 fn message_to_json_value(message: &Message) -> serde_json::Value {
     match message {
-        Message::SystemMessage(prompt) => {
+        Message::System(prompt) => {
             json!({
                 "role": "system",
                 "content": prompt
             })
         }
-        Message::ToolMessage {
+        Message::Tool {
             content,
             tool_call_id,
             name,
@@ -136,7 +136,7 @@ fn message_to_json_value(message: &Message) -> serde_json::Value {
                 "content": content
             })
         }
-        Message::UserMessage(msg) => match msg {
+        Message::User(msg) => match msg {
             UserMessage::Text(text) => {
                 json!({
                     "role": "user",
@@ -152,7 +152,7 @@ fn message_to_json_value(message: &Message) -> serde_json::Value {
                 })
             }
         },
-        Message::AssistantMessage {
+        Message::Assistant {
             content,
             reasoning_content,
             reasoning_details,

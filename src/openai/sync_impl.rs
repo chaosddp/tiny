@@ -6,8 +6,11 @@ use serde_json::{Value as JsonValue, json};
 
 use crate::{
     core::{
-        ChatOptions, FinishReason, Message, MessageChunk, ReasoningEffort, TinyError, Tool,
-        ToolCall, sync_impl::ChatClient,
+        sync_impl::ChatClient,
+        types::{
+            ChatOptions, FinishReason, Message, MessageChunk, ReasoningEffort, TinyError, Tool,
+            ToolCall,
+        },
     },
     openai::{OpenaiChunk, build_thinking_option, message_to_json_value, tool_to_json_value},
 };
@@ -167,7 +170,7 @@ impl ChatClient for OpenaiClient {
             };
         }
 
-        Ok(Message::AssistantMessage {
+        Ok(Message::Assistant {
             content: if content_builder.len() > 0 {
                 Some(content_builder)
             } else {
@@ -185,13 +188,13 @@ impl ChatClient for OpenaiClient {
                 None
             },
             finished_reason: match finish_reason {
-                Some(fr) => {
-                    if fr == "tool_call" {
-                        FinishReason::ToolCall
-                    } else {
-                        FinishReason::Other(fr)
-                    }
-                }
+                Some(fr) => match fr.as_ref() {
+                    "tool_call" | "tool_calls" => FinishReason::ToolCall,
+                    "stop" => FinishReason::Stop,
+                    "length" => FinishReason::Length,
+                    "content_filter" => FinishReason::ContentFilter,
+                    _ => FinishReason::Other(fr),
+                },
                 _ => FinishReason::Other("".to_string()),
             },
         })

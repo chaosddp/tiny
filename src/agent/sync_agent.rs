@@ -1,17 +1,16 @@
+use log::debug;
+use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use log::debug;
-
-use crate::agent::types::{LuaFuncTool, Tools, WLuaTable};
-use crate::core::sync_impl::{ChatClient, ChunkReceiver, ToolExecutor, tiny_loop};
-use crate::core::{ChatOptions, UserMessage};
 use crate::{
-    agent::types::WChatOptions,
-    core::{Message, TinyError, Tool},
+    agent::types::{LuaFuncTool, Tools, WChatOptions, WLuaTable},
+    core::{
+        sync_impl::{ChatClient, ChunkReceiver, ToolExecutor, tiny_loop},
+        types::{ChatOptions, Message, TinyError, Tool, UserMessage},
+    },
     luaenv::{env::LuaEnv, lua::*},
 };
-use serde_json::Value as JsonValue;
 
 pub struct Session {
     pub messages: Vec<Message>,
@@ -20,7 +19,7 @@ pub struct Session {
 impl Session {
     pub fn new(prompt: &str) -> Self {
         Session {
-            messages: vec![Message::SystemMessage(prompt.to_string())],
+            messages: vec![Message::System(prompt.to_string())],
         }
     }
 }
@@ -195,7 +194,7 @@ impl TinyAgent {
     pub fn chat(&mut self, message: &str) -> Result<(), TinyError> {
         self.session
             .messages
-            .push(Message::UserMessage(UserMessage::Text(message.to_string())));
+            .push(Message::User(UserMessage::Text(message.to_string())));
 
         tiny_loop(
             &self.chat_options.0,

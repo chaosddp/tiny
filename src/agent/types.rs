@@ -1,4 +1,4 @@
-use crate::core::{
+use crate::core::types::{
     ChatOptions, ReasoningEffort, ThinkingOptions, ThinkingType, Tool, ToolParameter,
 };
 use crate::luaenv::lua::*;

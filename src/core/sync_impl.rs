@@ -1,6 +1,6 @@
 use log::debug;
 
-use crate::core::{ChatOptions, FinishReason, Message, MessageChunk, TinyError, Tool};
+use super::{ChatOptions, FinishReason, Message, MessageChunk, TinyError, Tool};
 
 pub trait ChunkReceiver {
     fn chunk(&self, chunk: MessageChunk) -> Result<(), TinyError>;
@@ -31,7 +31,7 @@ pub fn tiny_loop(
     loop {
         let msg = chat_client.chat(options, &messages, tools, chunk_receiver)?;
 
-        if let Message::AssistantMessage {
+        if let Message::Assistant {
             content: _,
             reasoning_content: _,
             reasoning_details: _,
@@ -58,7 +58,7 @@ pub fn tiny_loop(
                         tool_call.arguments.as_deref(),
                     )?;
 
-                    messages.push(Message::ToolMessage {
+                    messages.push(Message::Tool {
                         content: tool_call_ret,
                         tool_call_id: tool_call.id.clone(),
                         name: tool_call.name.clone(),

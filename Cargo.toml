@@ -33,6 +33,7 @@ env_logger = { version = "0.11.11", features = ["auto-color", "humantime"] }
 reqwest = { version = "0.13.4", features = ["json", "stream"] }
 futures-util = { version = "0.3.33", optional = true }
 tokio = { version = "1.53.1", features = ["full"], optional = true }
+base64 = "0.23.1"
 
 
 [features]
