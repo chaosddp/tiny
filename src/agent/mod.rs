@@ -1,2 +1,3 @@
 pub mod types;
-// pub mod agent;
+#[cfg(feature = "sync")]
+pub mod sync_agent;

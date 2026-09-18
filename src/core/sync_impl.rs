@@ -2,46 +2,34 @@ use log::debug;
 
 use crate::core::{ChatOptions, FinishReason, Message, MessageChunk, TinyError, Tool};
 
-// short-cut of the async chat function type
-pub trait ChatFn:
-    Fn(
-    &ChatOptions,
-    &Vec<Message>,
-    &Vec<Tool>,
-    fn(MessageChunk) -> Result<(), TinyError>,
-) -> Result<Message, TinyError>
-{
+pub trait ChunkReceiver {
+    fn chunk(&self, chunk: MessageChunk) -> Result<(), TinyError>;
 }
 
-// implement it for all matching functions
-impl<F> ChatFn for F where
-    F: Fn(
-        &ChatOptions,
-        &Vec<Message>,
-        &Vec<Tool>,
-        fn(MessageChunk) -> Result<(), TinyError>,
-    ) -> Result<Message, TinyError>
-{
+pub trait ChatClient {
+    fn chat(
+        &self,
+        options: &ChatOptions,
+        messages: &Vec<Message>,
+        tools: &Vec<Tool>,
+        chunk_receiver: &Box<dyn ChunkReceiver>,
+    ) -> Result<Message, TinyError>;
 }
 
-pub trait ToolExecuteFn: Fn(&str, &str, Option<&str>) -> Result<String, TinyError> {}
+pub trait ToolExecutor {
+    fn exec(&self, name: &str, id: &str, tool_args: Option<&str>) -> Result<String, TinyError>;
+}
 
-impl<F> ToolExecuteFn for F where F: Fn(&str, &str, Option<&str>) -> Result<String, TinyError> {}
-
-pub fn tiny_loop<C, T>(
+pub fn tiny_loop(
     options: &ChatOptions,
-    mut messages: Vec<Message>,
-    chat: C,
+    messages: &mut Vec<Message>,
+    chat_client: &Box<dyn ChatClient>,
     tools: &Vec<Tool>,
-    tool_execute: T,
-    chunk_receiver: fn(MessageChunk) -> Result<(), TinyError>,
-) -> Result<Vec<Message>, TinyError>
-where
-    C: ChatFn,
-    T: ToolExecuteFn,
-{
+    tool_executor: &Box<dyn ToolExecutor>,
+    chunk_receiver: &Box<dyn ChunkReceiver>,
+) -> Result<(), TinyError> {
     loop {
-        let msg = chat(options, &messages, tools, chunk_receiver)?;
+        let msg = chat_client.chat(options, &messages, tools, chunk_receiver)?;
 
         if let Message::AssistantMessage {
             content: _,
@@ -64,7 +52,7 @@ where
                         tool_call.id, tool_call.name, tool_call.arguments
                     );
 
-                    let tool_call_ret = tool_execute(
+                    let tool_call_ret = tool_executor.exec(
                         &tool_call.name,
                         &tool_call.id,
                         tool_call.arguments.as_deref(),
@@ -80,5 +68,5 @@ where
         }
     }
 
-    Ok(messages)
+    Ok(())
 }

@@ -11,7 +11,6 @@ use reqwest::header;
 #[cfg(feature = "async")]
 use tokio::sync::mpsc;
 
-use log::debug;
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -23,8 +22,7 @@ use serde_json::{
 use crate::core::{Tool, ToolParameter};
 
 use super::core::{
-    ChatOptions, ContentPart, FinishReason, ImageDetail, Message, MessageChunk, ReasoningEffort,
-    ThinkingOptions, ThinkingType, TinyError, ToolCall, UserMessage,
+    ContentPart, ImageDetail, Message, ThinkingOptions, ThinkingType, ToolCall, UserMessage,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
