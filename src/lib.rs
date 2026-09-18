@@ -6,3 +6,5 @@ compile_error!("feature \"async\" is not completed.");
 
 pub mod luaenv;
 pub mod core;
+pub mod openai;
+pub mod agent;

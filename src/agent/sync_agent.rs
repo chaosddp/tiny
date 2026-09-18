@@ -6,12 +6,13 @@ use std::path::{Path, PathBuf};
 use crate::{
     agent::types::{LuaFuncTool, Tools, WChatOptions, WLuaTable},
     core::{
-        sync_impl::{ChatClient, ChunkReceiver, ToolExecutor, tiny_loop},
-        types::{ChatOptions, Message, TinyError, Tool, UserMessage},
+        ChatClient, ChatOptions, ChunkReceiver, Message, TinyError, Tool, ToolExecutor,
+        UserMessage, tiny_loop,
     },
     luaenv::{env::LuaEnv, lua::*},
 };
 
+/// Session management
 pub struct Session {
     pub messages: Vec<Message>,
 }
@@ -24,6 +25,7 @@ impl Session {
     }
 }
 
+/// Lua tool executor
 struct LuaToolExecutor {
     lua_functions: HashMap<String, LuaFunction>,
     lua: WeakLua,
@@ -111,10 +113,51 @@ impl ToolExecutor for LuaToolExecutor {
     }
 }
 
+/// Agent that interactive with lua script.
+/// It will try to load 'main.lua' file under folder '.tiny' for current working dir.
+/// The 'main.lua' script will be used to initalize the agent, and provide tools and life-cycle management
+///
+/// # Example
+///
+/// ```lua
+/// -- This agent will call this function automatically for configurations
+/// function tiny.conf(t)
+///     t.chat.provider = "openai" -- use openai compatible provider
+///     t.chat.model = "qwen3.5"
+///     t.chat.base_url = "http://localhost:11434/v1"
+///     t.chat.api_key = "ollama"
+///     t.chat.max_tokens = 10240000
+///
+///     t.chat.thinking.type = "enabled"
+///     t.chat.thinking.budget_tokens = 8192
+///     t.chat.reasoning_effort = "low" -- low, medium, hight, any other string
+///
+///     -- t.system_prompt = "myprompt"
+///
+///     t.tools = {
+///         get_weather = {
+///             desc = "get weather of specified city", -- descript of the tool
+///             func = get_weather,                     -- real function to call
+///             parameters = {
+///                 city = {
+///                     ["type"] = "string",
+///                     desc = "city name",
+///                     required = true
+///                 }
+///             }
+///         }
+///     }
+///end
+///
+/// ```
+#[allow(dead_code)]
 pub struct TinyAgent {
     lua_env: LuaEnv,
+    /// working directory
     work_dir: String,
+    /// path to '.tiny' under working dir
     tiny_dir: PathBuf,
+    /// chat options, initialized from lua script
     chat_options: WChatOptions,
     tools: Vec<Tool>, // tools definition for llm
 
