@@ -6,15 +6,16 @@ use serde_json::{Value as JsonValue, json};
 
 use crate::{
     core::{
-        sync_impl::ChatClient,
-        types::{
-            ChatOptions, FinishReason, Message, MessageChunk, ReasoningEffort, TinyError, Tool,
-            ToolCall,
-        },
+        ChatClient, ChatOptions, FinishReason, Message, MessageChunk, ReasoningEffort, TinyError,
+        Tool, ToolCall,
     },
-    openai::{OpenaiChunk, build_thinking_option, message_to_json_value, tool_to_json_value},
+    openai::{
+        types::OpenAIChunk,
+        utils::{build_thinking_option, message_to_json_value, tool_to_json_value},
+    },
 };
 
+/// OpenAI compatible chat client
 pub struct OpenaiClient {}
 
 impl OpenaiClient {
@@ -95,7 +96,7 @@ impl ChatClient for OpenaiClient {
                     if content_part == "[DONE]" {
                         break;
                     } else {
-                        if let Ok(c) = serde_json::from_str::<OpenaiChunk>(content_part) {
+                        if let Ok(c) = serde_json::from_str::<OpenAIChunk>(content_part) {
                             let first_choice = c.choices.first().unwrap();
 
                             if let Some(content) = &first_choice.delta.content
