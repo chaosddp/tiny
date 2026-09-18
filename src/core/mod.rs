@@ -50,6 +50,13 @@ pub struct ToolCall {
     pub arguments: Option<String>,
 }
 
+#[derive(Debug)]
+pub struct ToolCallResult {
+    pub name: String,
+    pub id: String,
+    pub result: String,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum FinishReason {
     ToolCall,
