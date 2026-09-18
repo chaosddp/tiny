@@ -33,6 +33,7 @@ impl LuaEnv {
     }
 
     /// Add a named function to root of current env
+    #[cfg(feature = "sync")]
     pub fn add_function<F, A, R>(&self, name: &str, func: F) -> LuaResult<()>
     where
         F: Fn(&Lua, A) -> LuaResult<R> + MaybeSend + 'static,
@@ -42,6 +43,7 @@ impl LuaEnv {
         self.add_member(name, self.lua.create_function(func)?)
     }
 
+    #[cfg(feature = "async")]
     pub fn add_async_function<F, A, FR, R>(&self, name: &str, func: F) -> LuaResult<()>
     where
         F: Fn(Lua, A) -> FR + MaybeSend + 'static,
@@ -91,7 +93,8 @@ impl LuaEnv {
         Ok(())
     }
 
-    pub async fn call<T>(&self, name: &str, args: impl IntoLuaMulti) -> LuaResult<T>
+    #[cfg(feature = "async")]
+    pub async fn call_async<T>(&self, name: &str, args: impl IntoLuaMulti) -> LuaResult<T>
     where
         T: FromLuaMulti,
     {
@@ -100,6 +103,26 @@ impl LuaEnv {
         match v {
             LuaValue::Function(func) => {
                 return func.call_async::<T>(args).await;
+            }
+            _ => {}
+        }
+
+        Err(LuaError::RuntimeError(format!(
+            "Fail to call: {}, not exist, or not callable.",
+            name
+        )))
+    }
+
+    #[cfg(feature = "sync")]
+    pub fn call<T>(&self, name: &str, args: impl IntoLuaMulti) -> LuaResult<T>
+    where
+        T: FromLuaMulti,
+    {
+        let v: LuaValue = self.lua.globals().get_path(name)?;
+
+        match v {
+            LuaValue::Function(func) => {
+                return func.call::<T>(args);
             }
             _ => {}
         }
@@ -124,7 +147,8 @@ impl LuaEnv {
     }
 
     /// load a script file
-    pub async fn exec_script(&self, file: &str) -> LuaResult<()> {
+    #[cfg(feature = "async")]
+    pub async fn exec_script_async(&self, file: &str) -> LuaResult<()> {
         let file_path = Path::new(file);
 
         if !file_path.exists() || !file_path.is_file() {
@@ -142,6 +166,29 @@ impl LuaEnv {
         }
 
         self.lua.load(script).exec_async().await?;
+
+        Ok(())
+    }
+
+    #[cfg(feature = "sync")]
+    pub fn exec_script(&self, file: &str) -> LuaResult<()> {
+        let file_path = Path::new(file);
+
+        if !file_path.exists() || !file_path.is_file() {
+            return Err(LuaError::RuntimeError(format!(
+                "file not exist, not invalid: {}",
+                file
+            )));
+        }
+
+        let mut script = String::new();
+
+        {
+            let mut fp = File::open(file_path)?;
+            fp.read_to_string(&mut script)?;
+        }
+
+        self.lua.load(script).exec()?;
 
         Ok(())
     }
