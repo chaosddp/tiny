@@ -7,14 +7,6 @@ pub mod async_impl;
 pub mod sync_impl;
 
 #[allow(unused_imports)]
-
-pub mod prelude {
-    #[cfg(feature = "sync")]
-    pub use super::sync_impl::{ChatClient, ChunkReceiver, ToolExecutor, tiny_loop};
-    pub use super::types::{Message, MessageChunk, UserMessage};
-}
-
-#[allow(unused_imports)]
 pub use types::*;
 
 #[allow(unused_imports)]

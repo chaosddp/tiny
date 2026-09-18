@@ -1,12 +1,21 @@
+/*! This module container synchronization base agent loop.
+ *
+ * This implementation use trait(s) for callbacks and lifetime management
+ */
+
 use log::debug;
 
 use super::{ChatOptions, FinishReason, Message, MessageChunk, TinyError, Tool};
 
+/// Trait to receive stream chunk from api server.
 pub trait ChunkReceiver {
+    /// called on chunk arrived
     fn chunk(&self, chunk: MessageChunk) -> Result<(), TinyError>;
 }
 
+/// Trait to provide chat implementation for different providers.
 pub trait ChatClient {
+    /// called when the agent need to interactive with LLM
     fn chat(
         &self,
         options: &ChatOptions,
@@ -16,10 +25,41 @@ pub trait ChatClient {
     ) -> Result<Message, TinyError>;
 }
 
+/// Trait to execute tool calls.
 pub trait ToolExecutor {
     fn exec(&self, name: &str, id: &str, tool_args: Option<&str>) -> Result<String, TinyError>;
 }
 
+/// Basic agent loop
+///
+/// # Example
+///
+/// ```ignore
+///
+/// // your chat options
+/// let options = ChatOptions{...};
+///
+/// let message: Vec<Message> = vec![];
+///
+/// let tools = load_my_tools();
+///
+/// let tool_executor: Box<dyn ToolExecutor> = MyToolExecutor::new();
+///
+/// let chat_client: Box<dyn ChatClient> = MyChatClient::new();
+///
+/// let chunk_reciever: Box<dyn ChunkReceiver> = MyChunkReceiver::new();
+///
+/// // one chat loop
+/// tiny_loop(
+///     &options,
+///     &mut messages,
+///     &chat_client,
+///     &tools,
+///     &tool_executor,
+///     &chunk_receiver,
+/// )?;
+///
+/// ```
 pub fn tiny_loop(
     options: &ChatOptions,
     messages: &mut Vec<Message>,
