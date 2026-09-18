@@ -59,6 +59,8 @@ impl ChatClient for OpenaiClient {
                 "tools": tool_definitions
         });
 
+        debug!("payload: \n{:?}", payload);
+
         let mut headers = header::HeaderMap::new();
 
         headers.insert(

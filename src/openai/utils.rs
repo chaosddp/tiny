@@ -24,8 +24,10 @@ pub fn part_to_value(part: &ContentPart) -> JsonValue {
     match part {
         ContentPart::File(file) => {
             json!({
-                "type": "file",
-                "file_url": file
+                "type": "file_url",
+                "file_url": {
+                    "url": file
+                }
             })
         }
         ContentPart::Text(text) => {
@@ -43,7 +45,7 @@ pub fn part_to_value(part: &ContentPart) -> JsonValue {
             };
 
             json!({
-                "type": "image",
+                "type": "image_url",
                 "image_url": {
                     "url": url,
                     "detail": detail_str
@@ -52,8 +54,10 @@ pub fn part_to_value(part: &ContentPart) -> JsonValue {
         }
         ContentPart::Video(video) => {
             json!({
-                "type": "video",
-                "video_url": video
+                "type": "video_url",
+                "video_url": {
+                    "url": video
+                }
             })
         }
     }

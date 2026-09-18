@@ -233,11 +233,43 @@ impl TinyAgent {
     }
 }
 
+pub trait ToUserMessage {
+    fn to_message(self) -> Result<Message, TinyError>;
+}
+
+impl ToUserMessage for String {
+    fn to_message(self) -> Result<Message, TinyError> {
+        Ok(Message::User(UserMessage::Text(self)))
+    }
+}
+
+impl ToUserMessage for &str {
+    fn to_message(self) -> Result<Message, TinyError> {
+        Ok(Message::user(self))
+    }
+}
+
+impl ToUserMessage for Message {
+    fn to_message(self) -> Result<Message, TinyError> {
+        Ok(self)
+    }
+}
+
+pub struct Image<'a>(pub &'a str, pub &'a str);
+
+impl<'a> ToUserMessage for Image<'a> {
+    fn to_message(self) -> Result<Message, TinyError> {
+        Message::image(self.0, self.1)
+    }
+}
+
 impl TinyAgent {
-    pub fn chat(&mut self, message: &str) -> Result<(), TinyError> {
-        self.session
-            .messages
-            .push(Message::User(UserMessage::Text(message.to_string())));
+    pub fn chat(&mut self, content: impl ToUserMessage) -> Result<(), TinyError> {
+        let message = content.to_message()?;
+
+        // debug!("message to chat: {:?}", message);
+
+        self.session.messages.push(message);
 
         tiny_loop(
             &self.chat_options.0,
