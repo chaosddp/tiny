@@ -120,6 +120,9 @@ impl From<(&Lua, ChatOptions)> for WLuaTable {
         config_table.set("tools", tools_table).unwrap();
         config_table.set("chat", chat_options_table).unwrap();
 
+        // trait object
+        config_table.set("chunk_receiver", LuaValue::Nil).unwrap();
+
         WLuaTable(config_table)
     }
 }

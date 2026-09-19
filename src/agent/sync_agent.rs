@@ -3,6 +3,7 @@ use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use crate::agent::sync_impl::{DefaultConsoleChunkReceiver, LuaChunkReceiverWrapper};
 use crate::{
     agent::types::{LuaFuncTool, Tools, WChatOptions, WLuaTable},
     core::{
@@ -173,7 +174,7 @@ impl TinyAgent {
         prompt: &str,
         work_dir: &str,
         chat_client: Box<dyn ChatClient>,
-        chunk_receiver: Box<dyn ChunkReceiver>,
+        chunk_receiver: Option<Box<dyn ChunkReceiver>>,
     ) -> Result<Self, TinyError> {
         let env = LuaEnv::new("tiny").unwrap();
 
@@ -217,6 +218,23 @@ impl TinyAgent {
             lua_tool_functions.insert(tool_name, tool_pair.0.1);
         }
 
+        // load trait object
+
+        let t_chunk_receiver: Box<dyn ChunkReceiver> =
+            match config_table.get::<LuaTable>("chunk_receiver") {
+                Ok(chunk_receiver_lua_object) => Box::new(LuaChunkReceiverWrapper::new(
+                    env.weak(),
+                    chunk_receiver_lua_object,
+                )?),
+                _ => {
+                    if let Some(p_receiver) = chunk_receiver {
+                        p_receiver
+                    } else {
+                        Box::new(DefaultConsoleChunkReceiver::new())
+                    }
+                }
+            };
+
         let lua_ref = env.weak();
 
         Ok(TinyAgent {
@@ -226,9 +244,9 @@ impl TinyAgent {
             tiny_dir: tiny_dir,
             chat_options: WChatOptions::from(&config_table),
             tool_executor: Box::new(LuaToolExecutor::new(lua_ref, lua_tool_functions)),
+            chunk_receiver: t_chunk_receiver,
             tools,
             chat_client,
-            chunk_receiver,
         })
     }
 }

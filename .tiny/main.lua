@@ -26,9 +26,76 @@ local ToolParameter = nil
 local Tool = nil
 
 ---@class TinyConfiguration
----@field chat  ChatOptions
----@field tools table<string, Tool>
+---@field chat           ChatOptions
+---@field tools          table<string, Tool>
+---@field chunk_receiver IChunkReceiver?
 local TinyConfiguration = nil
+
+---@class ToolCall
+---@field name      string
+---@field id        string
+---@field index     integer
+---@field arguments table<string, any>?
+local ToolCall = nil
+
+---@class MessageChunk
+---@field content           string?
+---@field reasoning_content string?
+---@field tool_call         ToolCall?
+local MessageChunk = nil
+
+---@class IChunkReceiver
+---@field chunk fun(self, chunk: MessageChunk): void
+local IChunkReceiver = nil
+
+---@class IToolExecutor
+---@field exec fun(self, tool_call: ToolCall): string @different with rust ToolExecutor, here we are expect a tool call object
+local IToolExecutor = nil
+
+---@class ToolExecutor: IToolExecutor
+local ToolExector = {}
+
+function ToolExector:exec(tool_call)
+    return "not implemented"
+end
+
+---@enum ChunkState
+local ChunkState = {
+    NotStarted = 1,
+    Reasoning = 2,
+    Content = 3,
+    ToolCall = 4
+}
+
+---@class ChunkReceiver: IChunkReceiver
+---@field state ChunkState
+local ChunkReceiver = {
+    state = ChunkState.NotStarted
+}
+
+function ChunkReceiver:chunk(chunk)
+    if chunk.content ~= nil then
+        if self.state ~= ChunkState.Content then
+            self.state = ChunkState.Content
+
+            io.write("\n\n[Assistant]\n\n")
+        end
+
+        io.write(chunk.content)
+        io.flush()
+    end
+
+    if chunk.reasoning_content ~= nil then
+        if self.state ~= ChunkState.Reasoning then
+            self.state = ChunkState.Reasoning
+
+            io.write("\n[🤔Reasoning]\n\n")
+        end
+
+        io.write(chunk.reasoning_content)
+        io.flush()
+    end
+end
 
 function get_weather(o)
     return [[
@@ -51,12 +118,12 @@ function tiny.conf(t)
 
     t.chat.max_tokens = 10240000
 
-    t.chat.thinking.type = "enabled"
+    t.chat.thinking.type = "disabled"
     t.chat.thinking.budget_tokens = 8192
 
     t.chat.reasoning_effort = "low" -- low, medium, hight, any other string
 
-    -- t.system_prompt = "myprompt"
+    t.chunk_receiver = ChunkReceiver
 
     t.tools = {
         get_weather = {

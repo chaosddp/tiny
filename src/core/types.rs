@@ -13,6 +13,12 @@ pub enum TinyError {
     IoError(std::io::Error),
     #[error("Invalid image file: {0}")]
     InvalidImageFile(String),
+    #[error("Fail to call lua content: {0}")]
+    InvalidLuaContent(mlua::Error),
+    #[error("Invalid lua trait object: {0}")]
+    InvalidLuaTraitObject(String),
+    #[error("Lua reference droped.")]
+    InvalidLuaReference,
     #[error("runtime error")]
     RuntimeError,
 }
@@ -20,6 +26,12 @@ pub enum TinyError {
 impl From<std::io::Error> for TinyError {
     fn from(value: std::io::Error) -> Self {
         TinyError::IoError(value)
+    }
+}
+
+impl From<mlua::Error> for TinyError {
+    fn from(value: mlua::Error) -> Self {
+        TinyError::InvalidLuaContent(value)
     }
 }
 
