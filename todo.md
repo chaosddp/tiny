@@ -1,16 +1,14 @@
 - [ ] memory: keep all the history message, support branching and compact
 - [ ] trace: memory + internal error message: message -> message -> error first time -> message -> error second time. so that we can use the trace for analysis. 
-- [ ] lua-rust: provide a lua-rust bridge, that wrap an lua object into a rust trait object, so that we can use lua to extend the agent
-  - [ ] ChunkReceive trait: receive and process chunk data in lua side (need more utf8 functions)
-  - [ ] ToolExecutor trait: execute tool in lua side and return a string value
 - [ ] error handling
   - [ ] different retry statergy on fail in each loop:
     - [ ] with limit times: configured via lua script
     - [ ] by func: call a lua function to decide whether to retry or not
 - [ ] log: log is associated with session, and can be saved to file
 - [ ] life cycle management with lua
-- [ ] more tools
 - [ ] session management - with sqlite in .tiny folder
 - [ ] ask user for tool execution permission
 - [ ] external interface to insert messages into current memory
 - [ ] built-in lua tools/modules
+- [ ] skills
+- [ ] ask agent to manage its own todo list for complex tasks per session
