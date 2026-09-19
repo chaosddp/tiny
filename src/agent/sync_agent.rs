@@ -85,7 +85,7 @@ pub struct TinyAgent {
 impl TinyAgent {
     /// Create a new instance of [`TinyAgent`].
     ///
-    /// If do not provide chunk_recever and tool_executor parameters, [`TinyAgent`] will use default implementation [`DefaultConsoleChunkReceiver`] and [`LuaToolExecutor`].
+    /// If do not provide chunk_recever and tool_executor parameters, [`TinyAgent`] will use default implementations.
     ///
     /// The '.tiny' folder under 'work_dir' will be add the lua search path, so we can require customize lua modules.
     pub fn new(
