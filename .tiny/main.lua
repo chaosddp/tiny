@@ -34,7 +34,7 @@ function ChunkReceiver:chunk(chunk)
         if self.state ~= ChunkState.Content then
             self.state = ChunkState.Content
 
-            io.write("\n\n[Assistant]\n\n")
+            io.write("\n\n[🤖] - [Assistant]\n\n")
         end
 
         io.write(chunk.content)
@@ -45,7 +45,7 @@ function ChunkReceiver:chunk(chunk)
         if self.state ~= ChunkState.Reasoning then
             self.state = ChunkState.Reasoning
 
-            io.write("\n[🤔Reasoning]\n\n")
+            io.write("\n[🤔] - [Reasoning]\n\n")
         end
 
         io.write(chunk.reasoning_content)
@@ -54,7 +54,7 @@ function ChunkReceiver:chunk(chunk)
 
     if chunk.tool_calls ~= nil then
         for _, tool_call in ipairs(chunk.tool_calls) do
-            io.write("\n\n[Tool call(" .. tool_call.id .. ")]\n\n")
+            io.write("\n\n[🔧] - [Tool call(" .. tool_call.id .. ")]\n\n")
 
             io.write("name: " .. tool_call.name .. "\n\n")
 
@@ -70,7 +70,7 @@ function ChunkReceiver:chunk(chunk)
     end
 
     if chunk.tool_result ~= nil then
-        io.write("\n\n[Tool result]\n\n")
+        io.write("\n\n[💬] - [Tool result]\n\n")
 
         io.write(chunk.tool_result)
 
