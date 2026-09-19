@@ -79,7 +79,7 @@ pub fn tiny_loop(
             finished_reason,
         } = &msg
         {
-            if *finished_reason == FinishReason::ToolCall || tool_calls.is_none() {
+            if *finished_reason != FinishReason::ToolCall || tool_calls.is_none() {
                 messages.push(msg);
 
                 break;

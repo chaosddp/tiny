@@ -113,7 +113,7 @@ impl ChatClient for OpenaiClient {
                                 reasoning_builder.push_str(&reasoning.clone());
                             }
 
-                            if let Some(fr) = &first_choice.delta.finish_reason
+                            if let Some(fr) = &first_choice.finish_reason
                                 && fr.len() > 0
                             {
                                 finish_reason = Some(fr.to_string())

@@ -22,13 +22,13 @@ pub(super) struct OpenaiChoiceDelta {
     pub content: Option<String>,
     pub reasoning: Option<String>,
     pub tool_calls: Option<Vec<OpenAIToolCall>>,
-    pub finish_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct OpenAIChoice {
     pub index: u32,
     pub delta: OpenaiChoiceDelta,
+    pub finish_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
