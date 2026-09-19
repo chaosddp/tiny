@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use log::debug;
 
 use crate::agent::sync_impl::{
-    DefaultChunkReceiver, LuaTraitObjectChunkReceiver, DefaultToolExecutor, LuaTraintObjectToolExecutor,
+    DefaultChunkReceiver, DefaultToolExecutor, LuaTraintObjectToolExecutor,
+    LuaTraitObjectChunkReceiver,
 };
 use crate::{
     agent::types::{Tools, WChatOptions, WLuaTable},
@@ -110,6 +111,13 @@ impl TinyAgent {
 
         // update the package search path
         env.add_package_path(tiny_dir.join("?.lua").to_str().unwrap())?;
+
+        let exe_path = std::env::current_exe()?;
+        let exe_dir = exe_path.parent().unwrap();
+
+        // TODO: load builtin lua modules
+
+        env.add_package_path(exe_dir.join("?.lua").to_str().unwrap())?;
 
         // add members
         env.add_member("tools", env.weak().upgrade().create_table()?)?;
