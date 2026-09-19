@@ -1,11 +1,10 @@
-use log::debug;
-use serde_json::Value as JsonValue;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use crate::agent::sync_impl::{DefaultConsoleChunkReceiver, LuaChunkReceiverWrapper};
+use crate::agent::sync_impl::{
+    DefaultConsoleChunkReceiver, LuaChunkReceiverWrapper, LuaToolExecutor, LuaToolExecutorWrapper,
+};
 use crate::{
-    agent::types::{LuaFuncTool, Tools, WChatOptions, WLuaTable},
+    agent::types::{Tools, WChatOptions, WLuaTable},
     core::{
         ChatClient, ChatOptions, ChunkReceiver, Message, TinyError, Tool, ToolExecutor,
         UserMessage, tiny_loop,
@@ -23,94 +22,6 @@ impl Session {
         Session {
             messages: vec![Message::System(prompt.to_string())],
         }
-    }
-}
-
-/// Lua tool executor
-struct LuaToolExecutor {
-    lua_functions: HashMap<String, LuaFunction>,
-    lua: WeakLua,
-}
-
-impl LuaToolExecutor {
-    pub fn new(lua: WeakLua, functions: HashMap<String, LuaFunction>) -> Self {
-        LuaToolExecutor {
-            lua_functions: functions,
-            lua,
-        }
-    }
-}
-
-impl ToolExecutor for LuaToolExecutor {
-    fn exec(&self, name: &str, id: &str, tool_args: Option<&str>) -> Result<String, TinyError> {
-        debug!("recieve tool call ({}): {}({:?})", name, id, tool_args);
-
-        if name.len() > 0 {
-            if let Some(func) = self.lua_functions.get(name) {
-                debug!("found function: {:?}", func.info());
-
-                if let Some(args) = tool_args {
-                    // parse it to json object, then to lua table
-                    match serde_json::from_str::<JsonValue>(&args) {
-                        Ok(args_json_value) if args_json_value.is_object() => {
-                            // we use the first level as parameters
-                            if let Some(lua) = self.lua.try_upgrade() {
-                                let args_table = lua.create_table().unwrap();
-
-                                for (k, v) in args_json_value.as_object().unwrap() {
-                                    // TODO: support nested parameter type
-                                    match v {
-                                        JsonValue::Bool(b) => {
-                                            args_table.set(k.clone(), *b).unwrap()
-                                        }
-                                        JsonValue::Null => {
-                                            args_table.set(k.clone(), LuaValue::Nil).unwrap()
-                                        }
-                                        JsonValue::Number(n) => {
-                                            args_table.set(k.clone(), n.as_f64()).unwrap()
-                                        }
-                                        JsonValue::String(s) => {
-                                            args_table.set(k.clone(), s.clone()).unwrap()
-                                        }
-                                        _ => {}
-                                    }
-                                }
-
-                                match func.call::<String>(args_table) {
-                                    Ok(ret) => return Ok(ret),
-                                    Err(e) => {
-                                        return Ok(format!(
-                                            "fail to call the tool: {}",
-                                            e.to_string()
-                                        ));
-                                    }
-                                }
-                            }
-                        }
-                        _ => {
-                            return Ok("Invalid tool call parameters, need a valid json object."
-                                .to_string());
-                        }
-                    }
-                } else {
-                    let ret = func
-                        .call::<String>(())
-                        .map_err(|e| TinyError::RuntimeError)?;
-
-                    return Ok(ret);
-                }
-            }
-        } else {
-            debug!(
-                "avaiable tools: {:?}",
-                self.lua_functions
-                    .keys()
-                    .map(|k| k.clone())
-                    .collect::<String>()
-            );
-        }
-
-        Err(TinyError::RuntimeError)
     }
 }
 
@@ -175,6 +86,7 @@ impl TinyAgent {
         work_dir: &str,
         chat_client: Box<dyn ChatClient>,
         chunk_receiver: Option<Box<dyn ChunkReceiver>>,
+        tool_executor: Option<Box<dyn ToolExecutor>>,
     ) -> Result<Self, TinyError> {
         let env = LuaEnv::new("tiny").unwrap();
 
@@ -189,38 +101,30 @@ impl TinyAgent {
             return Err(TinyError::RuntimeError);
         }
 
+        // update the package search path
+        env.add_package_path(tiny_dir.join("?.lua").to_str().unwrap())?;
+
+        // add members
+        env.add_member("tools", env.weak().upgrade().create_table()?)?;
+
         // load the entry script
-        env.exec_script(entry_file.to_str().unwrap())
-            .map_err(|e| TinyError::RuntimeError)?;
+        env.exec_script(entry_file.to_str().unwrap())?;
 
         let config_table = WLuaTable::from((&env.weak().upgrade(), ChatOptions::default())).0;
 
         // call the config function
-        env.call::<()>("tiny.conf", &config_table)
-            .map_err(|e| TinyError::RuntimeError)?;
+        env.call::<()>("tiny.conf", &config_table)?;
 
-        let lua_tools: Vec<LuaFuncTool> = Tools::from(
+        let tools: Vec<Tool> = Tools::from(
             &config_table
                 .get::<LuaTable>("tools")
                 .unwrap_or(env.weak().upgrade().create_table().unwrap()),
         )
         .0;
 
-        let mut tools: Vec<Tool> = Vec::new();
-        let mut lua_tool_functions: HashMap<String, LuaFunction> = HashMap::new();
-
-        for tool_pair in lua_tools {
-            let tool_name = tool_pair.0.0.name.to_string();
-
-            debug!("lua tool function: {} -> {:?}", tool_name, tool_pair.0.1);
-
-            tools.push(tool_pair.0.0);
-            lua_tool_functions.insert(tool_name, tool_pair.0.1);
-        }
-
         // load trait object
 
-        let t_chunk_receiver: Box<dyn ChunkReceiver> =
+        let chunk_receiver: Box<dyn ChunkReceiver> =
             match config_table.get::<LuaTable>("chunk_receiver") {
                 Ok(chunk_receiver_lua_object) => Box::new(LuaChunkReceiverWrapper::new(
                     env.weak(),
@@ -235,7 +139,20 @@ impl TinyAgent {
                 }
             };
 
-        let lua_ref = env.weak();
+        let tool_executor: Box<dyn ToolExecutor> =
+            match config_table.get::<LuaTable>("tool_executor") {
+                Ok(tool_execute_lua_object) => Box::new(LuaToolExecutorWrapper::new(
+                    env.weak(),
+                    tool_execute_lua_object,
+                )?),
+                _ => {
+                    if let Some(p_executor) = tool_executor {
+                        p_executor
+                    } else {
+                        Box::new(LuaToolExecutor::new(env.weak()))
+                    }
+                }
+            };
 
         Ok(TinyAgent {
             lua_env: env,
@@ -243,14 +160,15 @@ impl TinyAgent {
             work_dir: work_dir.to_string(),
             tiny_dir: tiny_dir,
             chat_options: WChatOptions::from(&config_table),
-            tool_executor: Box::new(LuaToolExecutor::new(lua_ref, lua_tool_functions)),
-            chunk_receiver: t_chunk_receiver,
+            tool_executor,
+            chunk_receiver,
             tools,
             chat_client,
         })
     }
 }
 
+/// Trait to convert value to related user message
 pub trait ToUserMessage {
     fn to_message(self) -> Result<Message, TinyError>;
 }
@@ -273,6 +191,8 @@ impl ToUserMessage for Message {
     }
 }
 
+/// parameter for user message with image
+#[allow(dead_code)]
 pub struct Image<'a>(pub &'a str, pub &'a str);
 
 impl<'a> ToUserMessage for Image<'a> {

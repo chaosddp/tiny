@@ -19,6 +19,8 @@ pub enum TinyError {
     InvalidLuaTraitObject(String),
     #[error("Lua reference droped.")]
     InvalidLuaReference,
+    #[error("Invalid json object: {0}")]
+    InvalidJsonObject(String),
     #[error("runtime error")]
     RuntimeError,
 }
@@ -342,6 +344,7 @@ pub enum MessageChunk {
         content: Option<String>,
         reasoning_content: Option<String>,
         tool_calls: Option<Vec<ToolCall>>,
+        tool_result: Option<String>,
     },
     Error(String),
 }

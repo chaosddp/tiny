@@ -9,7 +9,7 @@ mod core;
 mod luaenv;
 mod openai;
 
-use crate::agent::sync_agent::{Image, TinyAgent};
+use crate::agent::sync_agent::TinyAgent;
 use crate::openai::sync_impl::OpenaiClient;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,6 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "You are a helpful assistant",
         ".",
         Box::new(OpenaiClient::new()),
+        None,
         None,
     )?;
 

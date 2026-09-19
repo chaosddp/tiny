@@ -98,6 +98,13 @@ pub fn tiny_loop(
                         tool_call.arguments.as_deref(),
                     )?;
 
+                    chunk_receiver.chunk(MessageChunk::Chunk {
+                        content: None,
+                        reasoning_content: None,
+                        tool_calls: None,
+                        tool_result: Some(tool_call_ret.to_string()),
+                    })?;
+
                     messages.push(Message::Tool {
                         content: tool_call_ret,
                         tool_call_id: tool_call.id.clone(),

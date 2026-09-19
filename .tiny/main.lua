@@ -1,62 +1,18 @@
----@class ChatOptions
----@field provider         string                                                                       @not supported yet, now only support openai compatible providers
----@field model            string                                                                       @model name to use
----@field base_url         string                                                                       @base url of the model provider
----@field api_key          string                                                                       @api key from provider
----@field max_tokens       integer                                                                      @max tokens for each session, default is 8000
----@field reasoning_effort "low" | "medium" | "high" | "customized_effort_name_from_different_provider" @effort when reasoning, default is low
----@field thinking         ThinkingOptions                                                              @options of thinking
-local ChatOptions = nil
-
----@class ThinkingOptions
----@field type          "enabled" | "disabled" | "adaptive" | "customized_type_from_different_provider" @ type of thinking, default is "enabled"
----@field budget_tokens integer                                                                         @tokens for thinking
-local ThinkingOptions = nil
-
----@class ToolParameter
----@field type     string  @type of the parameter
----@field desc     string  @description of the paremeter
----@field required boolean @if the parameter is required, default is false
-local ToolParameter = nil
-
----@class Tool
----@field desc       string                       @description of the tool
----@field func       function                     @function to call
----@field parameters table<string, ToolParameter> @parameters of this tool, key if the name of parameter, value if the parameter information
-local Tool = nil
-
----@class TinyConfiguration
----@field chat           ChatOptions
----@field tools          table<string, Tool>
----@field chunk_receiver IChunkReceiver?
-local TinyConfiguration = nil
-
----@class ToolCall
----@field name      string
----@field id        string
----@field index     integer
----@field arguments table<string, any>?
-local ToolCall = nil
-
----@class MessageChunk
----@field content           string?
----@field reasoning_content string?
----@field tool_call         ToolCall?
-local MessageChunk = nil
-
----@class IChunkReceiver
----@field chunk fun(self, chunk: MessageChunk): void
-local IChunkReceiver = nil
-
----@class IToolExecutor
----@field exec fun(self, tool_call: ToolCall): string @different with rust ToolExecutor, here we are expect a tool call object
-local IToolExecutor = nil
+--- implementation part
+local tiny = tiny
+local tools = require "tools"
 
 ---@class ToolExecutor: IToolExecutor
 local ToolExector = {}
 
-function ToolExector:exec(tool_call)
-    return "not implemented"
+function ToolExector:exec(name, tool_args)
+    local func = tiny.tools[name]
+
+    if func ~= nil then
+        return func(tool_args)
+    end
+
+    return "tool [" .. name .. "] not available"
 end
 
 ---@enum ChunkState
@@ -95,20 +51,36 @@ function ChunkReceiver:chunk(chunk)
         io.write(chunk.reasoning_content)
         io.flush()
     end
+
+    if chunk.tool_calls ~= nil then
+        for _, tool_call in ipairs(chunk.tool_calls) do
+            io.write("\n[Tool call]\n\n")
+
+            io.write("name: " .. tool_call.name)
+
+            if tool_call.arguments ~= nil then
+                -- TODO: we need a function to format table into pretty string
+                io.write("arguments: " .. tool_call.arguments)
+            end
+
+            io.flush()
+        end
+
+        self.state = ChunkState.ToolCall
+    end
+
+    if chunk.tool_result ~= nil then
+        io.write("\n[Tool result]\n\n")
+
+        io.write(chunk.tool_result)
+
+        io.flush()
+
+        self.state = ChunkState.ToolCall
+    end
 end
 
-function get_weather(o)
-    return [[
-        Condition: Cloudy
-        Temperature: 17°C (feels comfortable/cool)
-        Humidity: 85%
-        Wind: East at 4 mph
-        High Temperature: 23°C
-        Low Temperature: 15°C
-        Tonight: Temperatures will drop to around 15°C and 14°C later tonight.
-    ]]
-end
-
+--- provide configurations for the application
 ---@param t TinyConfiguration
 function tiny.conf(t)
     t.chat.provider = "openai" -- use openai compatible provider
@@ -124,20 +96,16 @@ function tiny.conf(t)
     t.chat.reasoning_effort = "low" -- low, medium, hight, any other string
 
     t.chunk_receiver = ChunkReceiver
+    t.tool_executor = ToolExector
 
-    t.tools = {
-        get_weather = {
-            desc = "get weather of specified city", -- descript of the tool
-            func = get_weather,                     -- real function to call
-            parameters = {
-                city = {
-                    ["type"] = "string",
-                    desc = "city name",
-                    required = true
-                }
-            }
-        }
-    }
+    for _, tool in ipairs(tools) do
+        t.tools[tool.name] = tool.definition
+    end
+end
+
+-- attach tools to tiny.tools table, so that we can access it from the tool executor
+for _, tool in ipairs(tools) do
+    tiny.tools[tool.name] = tool.func
 end
 
 -- called each loop cycle, usage:

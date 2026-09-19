@@ -122,16 +122,14 @@ impl From<(&Lua, ChatOptions)> for WLuaTable {
 
         // trait object
         config_table.set("chunk_receiver", LuaValue::Nil).unwrap();
+        config_table.set("tool_executor", LuaValue::Nil).unwrap();
 
         WLuaTable(config_table)
     }
 }
 
-/// Wrapper for tool definition and related lua function
-pub(super) struct LuaFuncTool(pub(crate) (Tool, LuaFunction));
-
 /// Wrapper for lua tool definitions
-pub(super) struct Tools(pub(super) Vec<LuaFuncTool>);
+pub(super) struct Tools(pub(super) Vec<Tool>);
 
 impl From<&LuaTable> for Tools {
     fn from(value: &LuaTable) -> Self {
@@ -143,37 +141,35 @@ impl From<&LuaTable> for Tools {
                     .get::<String>("desc")
                     .unwrap_or(name.clone());
 
-                if let Ok(func) = tool_definition.get::<LuaFunction>("func") {
-                    // here it is a valid tool definition
-                    let mut tool = Tool {
-                        name: name,
-                        description: description,
-                        parameters: vec![],
-                    };
+                // here it is a valid tool definition
+                let mut tool = Tool {
+                    name: name,
+                    description: description,
+                    parameters: vec![],
+                };
 
-                    if let Ok(parameters) = tool_definition.get::<LuaTable>("parameters") {
-                        for p_pair in parameters.pairs::<String, LuaTable>() {
-                            if let Ok((p_name, p_definition)) = p_pair {
-                                let p_type = p_definition
-                                    .get::<String>("type")
-                                    .unwrap_or("string".to_string());
-                                let p_desc =
-                                    p_definition.get::<String>("desc").unwrap_or(p_name.clone());
-                                let p_required =
-                                    p_definition.get::<bool>("required").unwrap_or_default();
+                if let Ok(parameters) = tool_definition.get::<LuaTable>("parameters") {
+                    for p_pair in parameters.pairs::<String, LuaTable>() {
+                        if let Ok((p_name, p_definition)) = p_pair {
+                            let p_type = p_definition
+                                .get::<String>("type")
+                                .unwrap_or("string".to_string());
+                            let p_desc =
+                                p_definition.get::<String>("desc").unwrap_or(p_name.clone());
+                            let p_required =
+                                p_definition.get::<bool>("required").unwrap_or_default();
 
-                                tool.parameters.push(ToolParameter {
-                                    name: p_name,
-                                    p_type: p_type,
-                                    description: p_desc,
-                                    required: p_required,
-                                });
-                            }
+                            tool.parameters.push(ToolParameter {
+                                name: p_name,
+                                p_type: p_type,
+                                description: p_desc,
+                                required: p_required,
+                            });
                         }
                     }
-
-                    tools.push(LuaFuncTool((tool, func)));
                 }
+
+                tools.push(tool);
             }
         }
 

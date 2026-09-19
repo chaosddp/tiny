@@ -164,6 +164,7 @@ impl ChatClient for OpenaiClient {
                                     } else {
                                         None
                                     },
+                                    tool_result: None,
                                 })?;
                             }
                         }
