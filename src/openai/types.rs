@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 // These structures will follow the openai requirment to use serde_json to do deserialize
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OpenAIToolFunction {
+pub(super) struct OpenAIToolFunction {
     pub name: String,
     pub arguments: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OpenAIToolCall {
+pub(super) struct OpenAIToolCall {
     pub id: String,
     pub index: u32,
     pub r#type: String,
@@ -17,7 +17,7 @@ pub struct OpenAIToolCall {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OpenaiChoiceDelta {
+pub(super) struct OpenaiChoiceDelta {
     pub role: Option<String>,
     pub content: Option<String>,
     pub reasoning: Option<String>,
@@ -26,13 +26,13 @@ pub struct OpenaiChoiceDelta {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OpenAIChoice {
+pub(super) struct OpenAIChoice {
     pub index: u32,
     pub delta: OpenaiChoiceDelta,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OpenAIChunk {
+pub(super) struct OpenAIChunk {
     pub id: String,
     pub object: String,
     pub created: u64,

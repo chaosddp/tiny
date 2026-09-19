@@ -3,8 +3,14 @@ use crate::core::types::{
 };
 use crate::luaenv::lua::*;
 
-/// Wrapper of ChatOptions to make it implement traits
+/// Wrapper of ChatOptions to make it built-in traits
 pub(super) struct WChatOptions(pub(super) ChatOptions);
+
+/// Wrapper of LuaTable
+pub(super) struct WLuaTable(pub(super) LuaTable);
+
+/// Wrapper for lua tool definitions
+pub(super) struct Tools(pub(super) Vec<Tool>);
 
 impl From<&LuaTable> for WChatOptions {
     fn from(value: &LuaTable) -> Self {
@@ -46,8 +52,6 @@ impl From<&LuaTable> for WChatOptions {
         WChatOptions(options)
     }
 }
-
-pub(super) struct WLuaTable(pub(super) LuaTable);
 
 impl From<(&Lua, ChatOptions)> for WLuaTable {
     fn from(value: (&Lua, ChatOptions)) -> Self {
@@ -127,9 +131,6 @@ impl From<(&Lua, ChatOptions)> for WLuaTable {
         WLuaTable(config_table)
     }
 }
-
-/// Wrapper for lua tool definitions
-pub(super) struct Tools(pub(super) Vec<Tool>);
 
 impl From<&LuaTable> for Tools {
     fn from(value: &LuaTable) -> Self {

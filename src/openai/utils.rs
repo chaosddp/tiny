@@ -8,7 +8,7 @@ use crate::core::{
 };
 
 #[inline]
-pub fn tool_call_to_value(tool_call: &ToolCall) -> JsonValue {
+pub(super) fn tool_call_to_value(tool_call: &ToolCall) -> JsonValue {
     json!({
         "id": tool_call.id,
         "type": "function",
@@ -20,7 +20,7 @@ pub fn tool_call_to_value(tool_call: &ToolCall) -> JsonValue {
 }
 
 #[inline]
-pub fn part_to_value(part: &ContentPart) -> JsonValue {
+pub(super) fn part_to_value(part: &ContentPart) -> JsonValue {
     match part {
         ContentPart::File(file) => {
             json!({
@@ -63,7 +63,7 @@ pub fn part_to_value(part: &ContentPart) -> JsonValue {
     }
 }
 
-pub fn message_to_json_value(message: &Message) -> JsonValue {
+pub(super) fn message_to_json_value(message: &Message) -> JsonValue {
     match message {
         Message::System(prompt) => {
             json!({
@@ -129,7 +129,7 @@ pub fn message_to_json_value(message: &Message) -> JsonValue {
 }
 
 #[inline]
-pub fn build_thinking_option(options: &ThinkingOptions) -> JsonValue {
+pub(super) fn build_thinking_option(options: &ThinkingOptions) -> JsonValue {
     return json!({
         "type": match &options.t_type {
             ThinkingType::Enabled=>"enabled",
@@ -141,14 +141,16 @@ pub fn build_thinking_option(options: &ThinkingOptions) -> JsonValue {
     });
 }
 
-pub fn tool_parameter_to_json_value(tool_param: &ToolParameter) -> JsonValue {
+#[inline]
+pub(super) fn tool_parameter_to_json_value(tool_param: &ToolParameter) -> JsonValue {
     json!({
         "type": &tool_param.p_type,
         "description": &tool_param.description
     })
 }
 
-pub fn tool_to_json_value(tool: &Tool) -> JsonValue {
+#[inline]
+pub(super) fn tool_to_json_value(tool: &Tool) -> JsonValue {
     let parameters = if tool.parameters.len() > 0 {
         let mut map = BTreeMap::new();
 

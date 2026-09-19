@@ -1,7 +1,9 @@
 use std::path::{Path, PathBuf};
 
+use log::debug;
+
 use crate::agent::sync_impl::{
-    DefaultConsoleChunkReceiver, LuaChunkReceiverWrapper, LuaToolExecutor, LuaToolExecutorWrapper,
+    DefaultChunkReceiver, LuaTraitObjectChunkReceiver, DefaultToolExecutor, LuaTraintObjectToolExecutor,
 };
 use crate::{
     agent::types::{Tools, WChatOptions, WLuaTable},
@@ -81,6 +83,11 @@ pub struct TinyAgent {
 }
 
 impl TinyAgent {
+    /// Create a new instance of [`TinyAgent`].
+    ///
+    /// If do not provide chunk_recever and tool_executor parameters, [`TinyAgent`] will use default implementation [`DefaultConsoleChunkReceiver`] and [`LuaToolExecutor`].
+    ///
+    /// The '.tiny' folder under 'work_dir' will be add the lua search path, so we can require customize lua modules.
     pub fn new(
         prompt: &str,
         work_dir: &str,
@@ -126,7 +133,7 @@ impl TinyAgent {
 
         let chunk_receiver: Box<dyn ChunkReceiver> =
             match config_table.get::<LuaTable>("chunk_receiver") {
-                Ok(chunk_receiver_lua_object) => Box::new(LuaChunkReceiverWrapper::new(
+                Ok(chunk_receiver_lua_object) => Box::new(LuaTraitObjectChunkReceiver::new(
                     env.weak(),
                     chunk_receiver_lua_object,
                 )?),
@@ -134,14 +141,14 @@ impl TinyAgent {
                     if let Some(p_receiver) = chunk_receiver {
                         p_receiver
                     } else {
-                        Box::new(DefaultConsoleChunkReceiver::new())
+                        Box::new(DefaultChunkReceiver::new())
                     }
                 }
             };
 
         let tool_executor: Box<dyn ToolExecutor> =
             match config_table.get::<LuaTable>("tool_executor") {
-                Ok(tool_execute_lua_object) => Box::new(LuaToolExecutorWrapper::new(
+                Ok(tool_execute_lua_object) => Box::new(LuaTraintObjectToolExecutor::new(
                     env.weak(),
                     tool_execute_lua_object,
                 )?),
@@ -149,7 +156,7 @@ impl TinyAgent {
                     if let Some(p_executor) = tool_executor {
                         p_executor
                     } else {
-                        Box::new(LuaToolExecutor::new(env.weak()))
+                        Box::new(DefaultToolExecutor::new(env.weak()))
                     }
                 }
             };
@@ -205,7 +212,7 @@ impl TinyAgent {
     pub fn chat(&mut self, content: impl ToUserMessage) -> Result<(), TinyError> {
         let message = content.to_message()?;
 
-        // debug!("message to chat: {:?}", message);
+        debug!("message to chat: {:?}", message);
 
         self.session.messages.push(message);
 

@@ -13,3 +13,4 @@
 - [ ] session management - with sqlite in .tiny folder
 - [ ] ask user for tool execution permission
 - [ ] external interface to insert messages into current memory
+- [ ] built-in lua tools/modules

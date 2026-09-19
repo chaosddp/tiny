@@ -1,5 +1,5 @@
-mod types;
-mod utils;
+pub mod types;
+pub mod utils;
 
 #[cfg(feature = "async")]
 pub mod async_impl;

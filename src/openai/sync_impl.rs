@@ -174,6 +174,7 @@ impl ChatClient for OpenaiClient {
             };
         }
 
+        // TODO: helpers to make this easier
         Ok(Message::Assistant {
             content: if content_builder.len() > 0 {
                 Some(content_builder)

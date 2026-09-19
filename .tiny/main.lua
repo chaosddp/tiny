@@ -54,9 +54,9 @@ function ChunkReceiver:chunk(chunk)
 
     if chunk.tool_calls ~= nil then
         for _, tool_call in ipairs(chunk.tool_calls) do
-            io.write("\n[Tool call]\n\n")
+            io.write("\n\n[Tool call(" .. tool_call.id .. ")]\n\n")
 
-            io.write("name: " .. tool_call.name)
+            io.write("name: " .. tool_call.name .. "\n\n")
 
             if tool_call.arguments ~= nil then
                 -- TODO: we need a function to format table into pretty string
@@ -70,7 +70,7 @@ function ChunkReceiver:chunk(chunk)
     end
 
     if chunk.tool_result ~= nil then
-        io.write("\n[Tool result]\n\n")
+        io.write("\n\n[Tool result]\n\n")
 
         io.write(chunk.tool_result)
 

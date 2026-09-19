@@ -1,4 +1,3 @@
-
 pub async fn chat(
     options: &ChatOptions,
     messages: &Vec<Message>,

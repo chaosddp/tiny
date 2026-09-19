@@ -1,4 +1,4 @@
-use std::{cell::Cell, collections::HashMap, io::Write};
+use std::{cell::Cell, io::Write};
 
 use crate::luaenv::lua::*;
 use log::debug;
@@ -19,21 +19,69 @@ enum ChunkState {
 /// Default chunk receiver that output content to console.
 ///
 /// If use do not provide a chunk receiver from lua script, we will use this as default one.
-pub(super) struct DefaultConsoleChunkReceiver {
+pub(super) struct DefaultChunkReceiver {
     stdout: std::io::Stdout,
     state: Cell<ChunkState>,
 }
 
-impl DefaultConsoleChunkReceiver {
+/// Default tool executor, that will call tools in current lua environment in 'tiny.tools' object.
+pub(super) struct DefaultToolExecutor {
+    lua: WeakLua,
+}
+
+// TODO: can we make these a generate trait?
+
+/// Wrap a lua object as a ChunkReceiver trait object
+pub(super) struct LuaTraitObjectChunkReceiver {
+    lua: WeakLua,
+    lua_object: LuaTable,
+}
+
+/// Wrap a lua object as a ToolExecutor trait object
+pub(super) struct LuaTraintObjectToolExecutor {
+    lua: WeakLua,
+    lua_object: LuaTable,
+}
+
+/// convert a Json value into Lua value recursively
+fn json_to_lua(lua: &Lua, json_value: JsonValue) -> LuaValue {
+    match json_value {
+        JsonValue::Bool(v) => LuaValue::Boolean(v),
+        JsonValue::Null => LuaValue::Nil,
+        JsonValue::Number(n) => LuaValue::Number(n.as_f64().unwrap()),
+        JsonValue::String(s) => s.into_lua(lua).unwrap(),
+        JsonValue::Array(arr) => {
+            // TODO: error handling?
+            let lua_arr = lua.create_table().unwrap();
+
+            for v in arr {
+                lua_arr.push(json_to_lua(lua, v)).unwrap();
+            }
+
+            LuaValue::Table(lua_arr)
+        }
+        JsonValue::Object(o) => {
+            let lua_obj = lua.create_table().unwrap();
+
+            for (k, v) in o {
+                lua_obj.set(k, json_to_lua(lua, v)).unwrap();
+            }
+
+            LuaValue::Table(lua_obj)
+        }
+    }
+}
+
+impl DefaultChunkReceiver {
     pub fn new() -> Self {
-        DefaultConsoleChunkReceiver {
+        DefaultChunkReceiver {
             stdout: std::io::stdout(),
             state: Cell::new(ChunkState::NotStarted),
         }
     }
 }
 
-impl ChunkReceiver for DefaultConsoleChunkReceiver {
+impl ChunkReceiver for DefaultChunkReceiver {
     fn chunk(&self, chunk: MessageChunk) -> Result<(), TinyError> {
         let mut stdout = self.stdout.lock();
 
@@ -101,14 +149,8 @@ impl ChunkReceiver for DefaultConsoleChunkReceiver {
     }
 }
 
-/// Wrap a lua object as a ChunkReceiver object
-pub(super) struct LuaChunkReceiverWrapper {
-    lua: WeakLua,
-    lua_object: LuaTable,
-}
-
-impl LuaChunkReceiverWrapper {
-    pub fn new(lua: WeakLua, object: LuaTable) -> Result<LuaChunkReceiverWrapper, TinyError> {
+impl LuaTraitObjectChunkReceiver {
+    pub fn new(lua: WeakLua, object: LuaTable) -> Result<LuaTraitObjectChunkReceiver, TinyError> {
         // validate if the object match the trait requirement
         let _ = object.get::<LuaFunction>("chunk").map_err(|_| {
             TinyError::InvalidLuaTraitObject(
@@ -117,14 +159,14 @@ impl LuaChunkReceiverWrapper {
             )
         })?;
 
-        Ok(LuaChunkReceiverWrapper {
+        Ok(LuaTraitObjectChunkReceiver {
             lua,
             lua_object: object,
         })
     }
 }
 
-impl ChunkReceiver for LuaChunkReceiverWrapper {
+impl ChunkReceiver for LuaTraitObjectChunkReceiver {
     fn chunk(&self, chunk: MessageChunk) -> Result<(), TinyError> {
         // transform the chunk into lua table
         // call specified function
@@ -185,46 +227,13 @@ impl ChunkReceiver for LuaChunkReceiverWrapper {
     }
 }
 
-fn json_to_lua(lua: &Lua, json_value: JsonValue) -> LuaValue {
-    match json_value {
-        JsonValue::Bool(v) => LuaValue::Boolean(v),
-        JsonValue::Null => LuaValue::Nil,
-        JsonValue::Number(n) => LuaValue::Number(n.as_f64().unwrap()),
-        JsonValue::String(s) => s.into_lua(lua).unwrap(),
-        JsonValue::Array(arr) => {
-            // TODO: error handling?
-            let lua_arr = lua.create_table().unwrap();
-
-            for v in arr {
-                lua_arr.push(json_to_lua(lua, v)).unwrap();
-            }
-
-            LuaValue::Table(lua_arr)
-        }
-        JsonValue::Object(o) => {
-            let lua_obj = lua.create_table().unwrap();
-
-            for (k, v) in o {
-                lua_obj.set(k, json_to_lua(lua, v)).unwrap();
-            }
-
-            LuaValue::Table(lua_obj)
-        }
-    }
-}
-
-/// Lua tool executor
-pub(super) struct LuaToolExecutor {
-    lua: WeakLua,
-}
-
-impl LuaToolExecutor {
+impl DefaultToolExecutor {
     pub fn new(lua: WeakLua) -> Self {
-        LuaToolExecutor { lua }
+        DefaultToolExecutor { lua }
     }
 }
 
-impl ToolExecutor for LuaToolExecutor {
+impl ToolExecutor for DefaultToolExecutor {
     fn exec(&self, name: &str, id: &str, tool_args: Option<&str>) -> Result<String, TinyError> {
         debug!("recieve tool call ({}): {}({:?})", name, id, tool_args);
 
@@ -255,14 +264,7 @@ impl ToolExecutor for LuaToolExecutor {
     }
 }
 
-// TODO: can we make these a generate trait?
-
-pub(super) struct LuaToolExecutorWrapper {
-    lua: WeakLua,
-    lua_object: LuaTable,
-}
-
-impl LuaToolExecutorWrapper {
+impl LuaTraintObjectToolExecutor {
     pub fn new(lua: WeakLua, object: LuaTable) -> Result<Self, TinyError> {
         // validate if the object match the trait requirement
         let _ = object.get::<LuaFunction>("exec").map_err(|_| {
@@ -271,17 +273,19 @@ impl LuaToolExecutorWrapper {
             )
         })?;
 
-        Ok(LuaToolExecutorWrapper {
+        Ok(LuaTraintObjectToolExecutor {
             lua,
             lua_object: object,
         })
     }
 }
 
-impl ToolExecutor for LuaToolExecutorWrapper {
+impl ToolExecutor for LuaTraintObjectToolExecutor {
     fn exec(&self, name: &str, id: &str, tool_args: Option<&str>) -> Result<String, TinyError> {
         debug!("recieve tool call ({}): {}({:?})", name, id, tool_args);
 
+        // we just convert the arguments into a nested table, then call exec function of the lua object
+        // it knows where to find the tool functions
         match tool_args {
             Some(args_str) => {
                 if let Some(lua) = self.lua.try_upgrade() {
