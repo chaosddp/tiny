@@ -100,6 +100,7 @@ pub struct LuaChatClient {
 }
 
 impl LuaChatClient {
+    /// Create a new LuaChatClient with Lua state reference, and chat provider lua object
     pub fn new(lua: WeakLua, chat_provider: LuaTable) -> Self {
         let client = ClientBuilder::new().build().unwrap();
 
@@ -113,7 +114,7 @@ impl LuaChatClient {
     pub fn chat(
         &self,
         messages: LuaTable,
-        tools: LuaTable,
+        tools: Option<LuaTable>,
         options: LuaTable,
         chunk_receiver: Option<LuaTable>,
     ) -> TinyResult<LuaTable> {
@@ -155,20 +156,22 @@ impl LuaChatClient {
             Ok(reaponse) => match reaponse.error_for_status() {
                 Ok(resp) => {
                     let content_type = resp.headers().get("Content-Type").unwrap();
+                    debug!("Current response content type: {:?}", content_type);
 
                     if content_type == "text/event-stream" {
-                        debug!("Process SSE chunks");
-
                         self.process_sse_chunks(&lua, chunk_receiver, resp)?
                     } else {
-                        debug!("Process normal response");
-
                         let resp_text = resp.text().unwrap();
+
+                        debug!("response text: \n{0}", &resp_text);
+
                         self.chat_provider
                             .call_method::<LuaTable>("message", resp_text)?
                     }
                 }
                 Err(e) => {
+                    debug!("Lua client request error: {:?}", e);
+
                     return Err(TinyError::HttpError(e.status().unwrap(), e.to_string()));
                 }
             },
