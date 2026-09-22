@@ -110,3 +110,7 @@ end
 local tool_executor = DefaultToolExecutor()
 
 print(tool_executor:execute("get_weather", "id", "BeiJing"))
+
+tool_executor:load("tests/tools")
+
+print(tool_executor:execute("get_system_lang", "id", "BeiJing"))

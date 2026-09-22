@@ -1,4 +1,9 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 use glob::glob;
 use log::debug;
@@ -7,21 +12,21 @@ use mlua::prelude::*;
 use crate::core::TinyResult;
 
 /// Default tool execute that load and run all the tool functions in a seperated lua state with limit permissions
-/// 
+///
 /// It will try to load builtin tools first, then load tools from specified folders
-/// 
+///
 /// It will register a function 'DefaultToolExecutor' that return a new object. NOTE: each instance will own a new lua state!
-/// 
+///
 /// # Example
-/// 
+///
 /// ```lua
-/// 
-/// --- create a tool executor, it will load builtin tools by default 
+///
+/// --- create a tool executor, it will load builtin tools by default
 /// local tool_executor = DefaultToolExecutor()
-/// 
+///
 /// --- call a tool by name with id and parameters
 /// print(tool_executor:execute("get_weather", "id", "BeiJing"))
-/// 
+///
 /// ```
 pub struct LuaToolExecutor {
     lua: Lua,
@@ -38,25 +43,13 @@ impl LuaToolExecutor {
         }
     }
 
-    pub fn load(&mut self) -> LuaResult<()> {
-        let exe_path = std::env::current_exe()?;
-        let exe_dir = exe_path.parent().unwrap();
-
-        // TODO: load tools from 3rd folders
-
-        // register our extensions
-        crate::lua::extensions::prelude::register_all(&self.lua)?;
-
+    pub fn load(&mut self, path: PathBuf) -> LuaResult<()> {
         let globals = self.lua.globals();
         let require_func: LuaFunction = globals.get::<LuaFunction>("require")?;
 
-        // load modules unter tiny/tools
-        let tools_dir = exe_dir.join("tiny").join("tools");
-        let tools_dir_str = tools_dir.to_str().unwrap();
+        debug!("Loading tools from: {:?}", path);
 
-        debug!("Loading tools from: {}", tools_dir_str);
-
-        if let Ok(entrys) = glob(&format!("{}/*", tools_dir_str)) {
+        if let Ok(entrys) = glob(&format!("{}/*", path.to_str().unwrap())) {
             for entry in entrys {
                 match entry {
                     Ok(p) => {
@@ -73,23 +66,17 @@ impl LuaToolExecutor {
                             {
                                 let tool_name = p.file_name().unwrap().to_str().unwrap();
 
-                                match require_func
-                                    .call::<LuaFunction>(format!("tiny.tools.{}.tool", tool_name))
-                                {
-                                    Ok(tool_func) => {
-                                        debug!("Loaded tool function: {}", &tool_name);
+                                let mut script_buf = String::new();
 
-                                        self.tool_functions
-                                            .insert(tool_name.to_string(), tool_func);
-                                    }
-                                    Err(e) => {
-                                        debug!(
-                                            "cannot load tool {}, error: {}",
-                                            tool_name,
-                                            e.to_string()
-                                        );
-                                    }
+                                {
+                                    let mut fp = File::open(tool_file)?;
+
+                                    fp.read_to_string(&mut script_buf)?;
                                 }
+
+                                let tool_func: LuaFunction = self.lua.load(script_buf).eval()?;
+
+                                self.tool_functions.insert(tool_name.to_string(), tool_func);
                             }
                         }
                     }
@@ -106,6 +93,13 @@ impl LuaToolExecutor {
             Some(tool_func) => Ok(tool_func.call::<String>(parameters)?),
             _ => Err(LuaError::RuntimeError(format!("Invalid tool: {}", name))),
         }
+    }
+
+    fn init(&self) -> LuaResult<()> {
+        // register our extensions
+        crate::lua::extensions::prelude::register_all(&self.lua)?;
+
+        Ok(())
     }
 
     #[allow(dead_code)]
@@ -132,6 +126,10 @@ impl LuaUserData for LuaToolExecutor {
                 Ok(executor.execute(&name, &id, parameters))
             },
         );
+
+        methods.add_method_mut("load", |_, executor, path: String| {
+            Ok(executor.load(Path::new(&path).to_path_buf()))
+        });
     }
 }
 
@@ -143,7 +141,13 @@ pub fn register(lua: &Lua) -> TinyResult<()> {
         lua.create_function(|_, ()| {
             let mut executor = LuaToolExecutor::new();
 
-            executor.load()?;
+            executor.init()?;
+
+            // load modules unter tiny/tools
+            let exe_path = std::env::current_exe()?;
+            let tools_dir = exe_path.parent().unwrap().join("tiny").join("tools");
+
+            executor.load(tools_dir)?;
 
             Ok(executor)
         })?,
