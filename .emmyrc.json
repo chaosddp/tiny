@@ -1,0 +1,34 @@
+{
+    "$schema": ".vscode/emmylua.schema.json",
+    "workspace": {
+        "ignoreDir": [
+            "target"
+        ],
+        "ignoreGlobs": [
+            "**/target"
+        ],
+        "library": [
+            "tiny/types"
+        ],
+        "workspaceRoots": ["."]
+    },
+    "completion": {
+        "autoRequire": true,
+        "callSnippet": false,
+        "postfix": "@"
+    },
+    "diagnostics": {
+        "globals": [],
+        "disable": []
+    },
+    "doc": {
+        "syntax": "md"
+    },
+    "runtime": {
+        "version": "LuaJIT",
+        "requirePattern": [
+            "?.lua",
+            "?/init.lua"
+        ]
+    }
+}

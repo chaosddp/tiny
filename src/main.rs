@@ -7,6 +7,10 @@ compile_error!("feature \"async\" is not completed.");
 mod core;
 mod lua;
 mod bridge;
+mod agent;
+
+mod tiny;
+
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();

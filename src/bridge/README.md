@@ -1,0 +1,1 @@
+trait <--> lua object bridges
