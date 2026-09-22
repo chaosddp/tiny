@@ -33,7 +33,7 @@ pub fn base64_encode(lua: &Lua, s: LuaString) -> LuaResult<LuaString> {
 //     s[]
 // }
 
-pub fn register(lua: &Lua) -> TinyResult<()> {
+pub fn register(lua: &Lua) -> LuaResult<()> {
     // we attach external functions to lua builtin string table
     let string_table = lua.globals().get::<LuaTable>("string")?;
 

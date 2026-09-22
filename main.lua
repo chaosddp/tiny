@@ -71,38 +71,42 @@ function ChunkReceiver:receive(chunk)
     end
 end
 
-local chat_client = ChatClient(OpenAIChatProvider)
+-- local chat_client = ChatClient(OpenAIChatProvider)
 
-local success, message = pcall(
-    chat_client.chat, chat_client,
-    {
-        {
-            role = "system",
-            content = "You are a helpful assistant"
-        },
-        {
-            role = "user",
-            content = "hello"
-        }
-    },
-    nil,
-    {
-        model = "qwen3.5",
-        base_url = "http://localhost:11434/v1",
-        api_key = "Ollama",
-        stream = true,
-        max_tokens = 1024000
-    },
-    ChunkReceiver
-)
+-- local success, message = pcall(
+--     chat_client.chat, chat_client,
+--     {
+--         {
+--             role = "system",
+--             content = "You are a helpful assistant"
+--         },
+--         {
+--             role = "user",
+--             content = "hello"
+--         }
+--     },
+--     nil,
+--     {
+--         model = "qwen3.5",
+--         base_url = "http://localhost:11434/v1",
+--         api_key = "Ollama",
+--         stream = true,
+--         max_tokens = 1024000
+--     },
+--     ChunkReceiver
+-- )
 
-if success then
-    print(message.content)
-else
-    print(message)
-end
+-- if success then
+--     print(message.content)
+-- else
+--     print(message)
+-- end
 
 -- print("\n\n------- assistant message -------\n\n")
 -- print(message.role)
 -- print(message.content)
 -- print(message.reasoning)
+
+local tool_executor = DefaultToolExecutor()
+
+print(tool_executor:execute("get_weather", "id", "BeiJing"))

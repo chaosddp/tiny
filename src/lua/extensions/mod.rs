@@ -4,13 +4,11 @@ pub mod path;
 pub mod string;
 
 pub mod prelude {
-    use mlua::Lua;
-
-    use crate::core::TinyResult;
+    use mlua::{Lua, Result as LuaResult};
 
     use super::*;
 
-    pub fn register_all(lua: &Lua) -> TinyResult<()> {
+    pub fn register_all(lua: &Lua) -> LuaResult<()> {
         json::register(lua)?;
         string::register(lua)?;
         http::register(lua)?;

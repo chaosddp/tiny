@@ -67,7 +67,7 @@ impl UserData for LuaHttpClient {
     }
 }
 
-pub fn register(lua: &Lua) -> TinyResult<()> {
+pub fn register(lua: &Lua) -> LuaResult<()> {
     let globals = lua.globals();
 
     globals.set(

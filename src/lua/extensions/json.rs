@@ -100,7 +100,7 @@ pub fn parse_json(lua: &Lua, s: String) -> LuaResult<LuaValue> {
     Ok(json_to_lua(lua, json_value))
 }
 
-pub fn register(lua: &Lua) -> TinyResult<()> {
+pub fn register(lua: &Lua) -> LuaResult<()> {
     let json_table = lua.create_table()?;
 
     json_table.set("load", lua.create_function(parse_json)?)?;

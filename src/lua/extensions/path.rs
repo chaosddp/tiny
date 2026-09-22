@@ -31,7 +31,7 @@ pub fn get_path_info(lua: &Lua, p: String) -> LuaResult<LuaTable> {
     Ok(info_table)
 }
 
-pub fn register(lua: &Lua) -> TinyResult<()> {
+pub fn register(lua: &Lua) -> LuaResult<()> {
     let path_table = lua.create_table()?;
 
     path_table.set("is_file", lua.create_function(is_file)?)?;
