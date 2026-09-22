@@ -4,14 +4,6 @@ compile_error!("feature \"async\" and feature \"sync\" cannot be enabled at the 
 #[cfg(feature = "async")]
 compile_error!("feature \"async\" is not completed.");
 
-mod agent;
-mod core;
-mod luaenv;
-mod openai;
-
-use crate::agent::sync_agent::TinyAgent;
-use crate::openai::sync_impl::OpenaiClient;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
