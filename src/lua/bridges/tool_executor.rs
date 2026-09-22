@@ -45,7 +45,6 @@ impl LuaToolExecutor {
 
     pub fn load(&mut self, path: PathBuf) -> LuaResult<()> {
         let globals = self.lua.globals();
-        let require_func: LuaFunction = globals.get::<LuaFunction>("require")?;
 
         debug!("Loading tools from: {:?}", path);
 
@@ -145,7 +144,7 @@ pub fn register(lua: &Lua) -> TinyResult<()> {
 
             // load modules unter tiny/tools
             let exe_path = std::env::current_exe()?;
-            let tools_dir = exe_path.parent().unwrap().join("tiny").join("tools");
+            let tools_dir = exe_path.parent().unwrap().join("lua").join("tools");
 
             executor.load(tools_dir)?;
 

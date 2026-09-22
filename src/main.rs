@@ -20,10 +20,8 @@ fn pretty_lua_error(err: mlua::Error) {
                 "Lua Error (BadArgument) - to: {to:?}, pos: {pos}, name: {name:?}, cause: {cause}"
             );
         }
-        mlua::Error::RuntimeError(s)=> {
-            error!(
-                "Lua Error (RuntimeError) - {s:?}"
-            );
+        mlua::Error::RuntimeError(s) => {
+            error!("Lua Error (RuntimeError) - {s:?}");
         }
         _ => error!("Lua Error - {}", err.to_string()),
     }
@@ -36,6 +34,12 @@ fn run() -> TinyResult<()> {
 
     lua::extensions::prelude::register_all(&lua)?;
     lua::bridges::register_all(&lua)?;
+
+    // preload all builtin modules
+    let globals = lua.globals();
+    let require_func = globals.get::<mlua::Function>("require")?;
+
+    require_func.call::<()>("tiny")?;
 
     let mut script = String::new();
 

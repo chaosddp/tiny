@@ -17,7 +17,7 @@ fn main() {
     }
 
     Command::new("cp")
-        .args(["-r", "tiny", dest_path.to_str().unwrap()])
+        .args(["-r", "lua", dest_path.to_str().unwrap()])
         .spawn()
         .expect("fail to copy builtin file");
 }
