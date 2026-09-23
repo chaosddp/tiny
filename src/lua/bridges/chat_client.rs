@@ -193,6 +193,7 @@ impl LuaChatClient {
         let mut content = String::new();
         let mut reasoning_content = String::new();
         let mut finish_reason = None;
+        let mut tool_call = None;
 
         let reader = BufReader::new(resp);
         for line_ret in reader.lines() {
@@ -223,6 +224,10 @@ impl LuaChatClient {
                             finish_reason = Some(chunk_finish_reason);
                         }
 
+                        if let Ok(tc) = chunk_table.get::<LuaTable>("tool_call") {
+                            tool_call = Some(tc);
+                        }
+
                         if let Some(chunk_rc) = &chunk_receiver {
                             chunk_rc.call_method::<()>("receive", chunk_table)?;
                         }
@@ -239,6 +244,13 @@ impl LuaChatClient {
         message.set("content", content)?;
         message.set("reasoning_content", reasoning_content)?;
         message.set("finish_reason", finish_reason)?;
+
+        if tool_call.is_some() {
+            let tool_calls = lua.create_table()?;
+
+            tool_calls.push(tool_call)?;
+            message.set("tool_calls", tool_calls)?;
+        }
 
         Ok(message)
     }

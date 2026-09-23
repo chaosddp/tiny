@@ -6,8 +6,15 @@ local ipairs = ipairs
 ---@param ctx     AgentLoopContext
 ---@param plugins AgentLoopPlugins
 local function agent_loop(ctx, plugins)
-  local is_model_support_tools = (ctx.options.support_tools and plugins.tool_executor ~= nil)
-    or false
+  local is_model_support_tools = true
+
+  if is_model_support_tools and plugins.tool_executor == nil then
+    is_model_support_tools = false
+  end
+
+  if is_model_support_tools and ctx.options.support_tools == false then
+    is_model_support_tools = false
+  end
 
   while true do
     local message = plugins.chat_client:chat(
@@ -20,7 +27,7 @@ local function agent_loop(ctx, plugins)
     table.insert(ctx.messages, message)
 
     -- stop if we do not tool calls
-    if not is_model_support_tools or message.finished_reason ~= "tool_calls"
+    if not is_model_support_tools or message.finish_reason ~= "tool_calls"
       or message.tool_calls == nil or #message.tool_calls == 0 then
       break
     end

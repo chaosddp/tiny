@@ -2,7 +2,7 @@
 
 ---@alias ImageDetail "auto" | "high" | "low" | string @image policy
 
----@alias FinishedReason "stop" | "length" | "tool_calls" | "content_filter" | string
+---@alias FinishReason "stop" | "length" | "tool_calls" | "content_filter" | string
 
 ---@class ToolCall
 ---@field id         string
@@ -30,12 +30,13 @@ local ToolMessage = {}
 local Usage = {}
 
 ---@class AssistantMessage
----@field role            "assistant"    @role of the message
----@field content         string         @content of the message
----@field reasoning?      string         @reasoning content of the message
----@field tool_calls?     ToolCall[]     @tool calls of the message
----@field finished_reason FinishedReason
----@field usage?          Usage
+---@field role              "assistant"    @role of the message
+---@field content           string         @content of the message
+---@field reasoning?        string         @reasoning content of the message
+---@field reasoning_details? string[]
+---@field tool_calls?       ToolCall[]     @tool calls of the message
+---@field finish_reason   FinishReason
+---@field usage?            Usage
 local AssistantMessage = {}
 
 ---@class TextUserMessage
@@ -71,5 +72,5 @@ local ToolParameter = {}
 ---@class Tool
 ---@field name        string
 ---@field description string
----@field parameters?  ToolParameter[]
+---@field parameters? ToolParameter[]
 local Tool = {}

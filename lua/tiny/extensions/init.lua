@@ -1,0 +1,1 @@
+require "tiny.extensions.table_extensions"
