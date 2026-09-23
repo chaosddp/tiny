@@ -1,9 +1,13 @@
----@class IAgentLoop
-local IAgentLoop = {}
+---@class AgentLoopContext
+---@field messages Message[]
+---@field options  ChatOptions
+---@field tools?   Tool[]
+local AgentLoopContext = {}
 
----@param messages        Message[]
----@param options         ChatOptions
----@param chat_client     IChatClient
----@param tool_executor?  IToolExecutor
----@param chunk_receiver? IChunkReceiver
-function IAgentLoop:loop(messages, options, chat_client, tool_executor, chunk_receiver) end
+---@class AgentLoopPlugins
+---@field chat_client     IChatClient
+---@field tool_executor?  IToolExecutor
+---@field chunk_receiver? IChunkReceiver
+local AgentLoopPlugins = {}
+
+---@alias AgentLoop fun(ctx: AgentLoopContext, plugins: AgentLoopPlugins): void

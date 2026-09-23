@@ -1,17 +1,21 @@
+---@alias ThinkingType "enabled" | "disabled" | "adaptive" | string
+---@alias ReasoningEffort "low" | "medium" | "high" | string
+
 --- Options for chatting
 ---@class ChatOptions
----@field model                 string
+---@field model                 string          @model name
 ---@field base_url              string
 ---@field api_key               string
----@field stream?               boolean
----@field stream_include_usage? boolean
----@field max_tokens?           integer
----@field reasoning_effort?     "low" | "medium" | "high" | string
----@field thinking_type?        "enabled" | "disabled" | "adaptive" | string
----@field thinking_budget?      integer
----@field support_tools?        boolean
----@field support_thinking?     boolean
----@field support_vision?       boolean
+---@field provider?             string          @llm provider name, this will be used for error handing and request processing
+---@field stream?               boolean         @if enable stream mode, default is true
+---@field stream_include_usage? boolean         @if include tokens usage in stream mode, default is true
+---@field max_tokens?           integer         @max tokens, default is 8000
+---@field reasoning_effort?     ReasoningEffort @reasoning effort, default is "medium"
+---@field thinking_type?        ThinkingType    @thinking type, default is 'enabled'
+---@field thinking_budget?      integer         @thining budget, default is 8192 if thiking is not disabled
+---@field support_tools?        boolean         @if the model support tools?, default is true
+---@field support_thinking?     boolean         @if the model support thining, default is true
+---@field support_vision?       boolean         @if the model support vision, default is true
 local ChatOptions = {}
 
 --- Chat client used to chat with llm with related provider
