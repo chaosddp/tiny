@@ -114,8 +114,8 @@ impl LuaChatClient {
     pub fn chat(
         &self,
         messages: LuaTable,
-        tools: Option<LuaTable>,
         options: LuaTable,
+        tools: Option<LuaTable>,
         chunk_receiver: Option<LuaTable>,
     ) -> TinyResult<LuaTable> {
         let lua = self
@@ -126,7 +126,7 @@ impl LuaChatClient {
         // ask provider for request things
         let (success, request_options) = self
             .chat_provider
-            .call_method::<(bool, LuaValue)>("request", (messages, tools, options))?;
+            .call_method::<(bool, LuaValue)>("request", (messages, options, tools))?;
 
         if !success {
             return Err(TinyError::RuntimeError(
@@ -249,9 +249,9 @@ impl LuaUserData for LuaChatClient {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_method(
             "chat",
-            |_, client, (messages, tools, options, chunk_receiver)| {
+            |_, client, (messages, options, tools, chunk_receiver)| {
                 let message = client
-                    .chat(messages, tools, options, chunk_receiver)
+                    .chat(messages, options, tools, chunk_receiver)
                     .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
 
                 Ok(message)

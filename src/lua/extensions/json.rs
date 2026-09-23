@@ -1,8 +1,6 @@
 use mlua::{IntoLua, Lua, Result as LuaResult, Value as LuaValue};
 use serde_json::{Number, Value as JsonValue};
 
-use crate::core::TinyResult;
-
 /// convert a Json value into Lua value recursively
 fn json_to_lua(lua: &Lua, json_value: JsonValue) -> LuaValue {
     match json_value {

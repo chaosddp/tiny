@@ -2,8 +2,6 @@ use base64::Engine;
 use mlua::prelude::*;
 use utf16string::{LittleEndian, WString};
 
-use crate::core::TinyResult;
-
 pub fn to_utf8_bytes(lua: &Lua, s: String) -> LuaResult<LuaString> {
     lua.create_string(s.as_bytes())
 }

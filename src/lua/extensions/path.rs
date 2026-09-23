@@ -2,8 +2,6 @@ use std::path::Path;
 
 use mlua::prelude::*;
 
-use crate::core::TinyResult;
-
 pub fn is_path_exist(_: &Lua, p: String) -> LuaResult<bool> {
     Ok(Path::new(&p).exists())
 }

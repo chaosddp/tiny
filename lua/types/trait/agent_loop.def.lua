@@ -1,9 +1,9 @@
 ---@class IAgentLoop
 local IAgentLoop = {}
 
----@param options        ChatOptions
----@param messages       Message[]
----@param chat_client    IChatClient
----@param chunk_receiver IChunkReceiver
----@param tool_executor  IToolExecutor
-function IAgentLoop:loop(messages, options, chat_client, chunk_receiver, tool_executor) end
+---@param messages        Message[]
+---@param options         ChatOptions
+---@param chat_client     IChatClient
+---@param tool_executor?  IToolExecutor
+---@param chunk_receiver? IChunkReceiver
+function IAgentLoop:loop(messages, options, chat_client, tool_executor, chunk_receiver) end

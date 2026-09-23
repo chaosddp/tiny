@@ -1,14 +1,14 @@
 ---@type ChatProvider
 local OpenAIChatProvider = {}
 
-function OpenAIChatProvider:request(messages, tools, options)
+function OpenAIChatProvider:request(messages, options, tools)
     local url = options.base_url .. "/chat/completions"
 
     local body = {
         model = options.model,
-        stream = options.stream,
-        max_tokens = options.max_tokens,
-        messages = messages
+        messages = messages,
+        stream = options.stream or true,
+        max_tokens = options.max_tokens or 8000
     }
 
     ---@type RequestOptions
@@ -85,7 +85,6 @@ local success, message = pcall(
             content = "hello"
         }
     },
-    nil,
     {
         model = "qwen3.5",
         base_url = "http://localhost:11434/v1",
@@ -93,7 +92,7 @@ local success, message = pcall(
         stream = true,
         max_tokens = 1024000
     },
-    ChunkReceiver
+    nil, ChunkReceiver
 )
 
 if success then
@@ -116,3 +115,54 @@ tool_executor:load("tests/tools")
 print(tool_executor:execute("get_system_lang", "id", "BeiJing"))
 
 print(TINY_VERSION)
+
+local http_client = HttpClient()
+
+local ret = http_client:send(
+    "post", "http://localhost:11434/v1/chat/completions",
+    {
+        stream = true,
+        model = "qwen3.5",
+        messages = {
+            {
+                role = "system",
+                content = "you are a helpful assistant"
+            },
+            {
+                role = "user",
+                content = "hello"
+            }
+        }
+    },
+    {
+        Authorization = "Bearer Ollama"
+    },
+    function (line)
+        if line ~= "data: [DONE]" then
+            local data_line = string.sub(line, 7)
+
+            local success, obj = pcall(json.load, data_line)
+
+            if success and obj.choices[1] then
+                if obj.choices[1].delta.content then
+                    io.write(obj.choices[1].delta.content)
+                    io.flush()
+                end
+            end
+        else
+            print("\n")
+        end
+    end
+)
+
+if type(ret) == "string" then
+    print(ret)
+elseif type(ret) == "table" then
+    for _, l in ipairs(ret) do
+        print(l)
+    end
+end
+
+local ret = http_client:send("get", "http://localhost:11434/v1/models")
+
+print(ret)

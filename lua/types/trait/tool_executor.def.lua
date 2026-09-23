@@ -1,10 +1,10 @@
 ---@class IToolExecutor
 local IToolExecutor = {}
 
----Execute a tool function
----@param name       string
----@param id         string
----@param parameters string?
+--- Execute a tool function
+---@param name        string
+---@param id          string
+---@param parameters? string
 ---@return string
 function IToolExecutor:execute(name, id, parameters) end
 

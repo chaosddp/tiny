@@ -1,14 +1,14 @@
----@alias MessageRole = "system" | "user" | "assistant" | "tool" @type of the message
+---@alias MessageRole "system" | "user" | "assistant" | "tool" @type of the message
 
 ---@alias ImageDetail "auto" | "high" | "low" | string @image policy
 
 ---@alias FinishedReason "stop" | "length" | "tool_calls" | "content_filter" | string
 
 ---@class ToolCall
----@field id        string
----@field name      string
----@field index     integer
----@field arguments string?
+---@field id         string
+---@field name       string
+---@field index      integer
+---@field arguments? string
 local ToolCall = {}
 
 ---@class SystemMessage
@@ -32,10 +32,10 @@ local Usage = {}
 ---@class AssistantMessage
 ---@field role            "assistant"    @role of the message
 ---@field content         string         @content of the message
----@field reasoning       string?        @reasoning content of the message
----@field tool_calls      ToolCall[]?    @tool calls of the message
+---@field reasoning?      string         @reasoning content of the message
+---@field tool_calls?     ToolCall[]     @tool calls of the message
 ---@field finished_reason FinishedReason
----@field usage           Usage?
+---@field usage?          Usage
 local AssistantMessage = {}
 
 ---@class TextUserMessage
@@ -44,12 +44,12 @@ local AssistantMessage = {}
 local TextUserMessage = {}
 
 ---@class ContentPart
----@field type         "text" | "image" | "video" | "file"
----@field text         string?
----@field image        string?
----@field image_detail ImageDetail?
----@field video        string?
----@field file         string?
+---@field type          "text" | "image" | "video" | "file"
+---@field text?         string
+---@field image?        string
+---@field image_detail? ImageDetail
+---@field video?        string
+---@field file?         string
 local ContentPart = {}
 
 ---@class PartsUserMessage
@@ -65,11 +65,11 @@ local PartsUserMessage = {}
 ---@field name        string
 ---@field type        string
 ---@field description string
----@field required    boolean?
+---@field required?   boolean
 local ToolParameter = {}
 
 ---@class Tool
 ---@field name        string
 ---@field description string
----@field parameters  ToolParameter[]?
+---@field parameters?  ToolParameter[]
 local Tool = {}
