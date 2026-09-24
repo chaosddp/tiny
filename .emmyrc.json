@@ -6,7 +6,7 @@
             "tests"
         ],
         "library": [
-            "tiny/types"
+            "tiny/typings"
         ],
         "workspaceRoots": ["."]
     },
