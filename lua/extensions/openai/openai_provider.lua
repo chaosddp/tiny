@@ -182,10 +182,10 @@ function OpenAIChatProvider:message(message_str)
             usage = full_message.usage
         }
 
-        return true, message
+        return message
     end
 
-    return false, "fail to parse the message string"
+    return nil
 end
 
 return OpenAIChatProvider

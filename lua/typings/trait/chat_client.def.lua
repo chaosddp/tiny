@@ -63,8 +63,7 @@ function ChatProvider:chunk(chunk_str) end
 
 --- Parse the content from llm server into AssistantMessage, this is called when stream=false
 ---@param message_str string
----@return bool                      @if success
----@return AssistantMessage | string @AssistantMessage if succes, else error message
+---@return AssistantMessage? @AssistantMessage if succes, else error message
 function ChatProvider:message(message_str) end
 
 --- Create a new ChatClient for a provider
