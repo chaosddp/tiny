@@ -41,7 +41,7 @@ local function agent_loop(ctx, extensions)
       )
 
       if extensions.chunk_receiver then
-        extensions.chunk_receiver:receive({ tool_result = tool_result })
+        extensions.chunk_receiver:chunk({ tool_result = tool_result })
       end
 
       ---@type ToolMessage

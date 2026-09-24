@@ -1,5 +1,37 @@
+local path = path
+local pcall = pcall
+local pairs = pairs
+local ipairs = ipairs
+local json = json
+local string = string
+local table = table
+local os = os
+local io = io
+
 local ExtensionManager = require "tiny.agent.extension_manager"
 local TinyAgent = require "tiny.agent.agent"
+
+function load_tool_definitions()
+    local tool_definitions = {}
+    local source_base = path.source_base_dir()
+    local glob_pattern = source_base .. "/lua/tools/*/tool.json"
+
+    local tool_files = path.glob(glob_pattern)
+
+    for _, tool_file in ipairs(tool_files) do
+        local success, file = pcall(io.open, tool_file)
+
+        if success and file then
+            local tool_def_str = file:read("*a")
+
+            table.insert(tool_definitions, json.load(tool_def_str))
+        else
+            print("fail to load tool definition: " .. file)
+        end
+    end
+
+    return tool_definitions
+end
 
 function run(configs)
     -- update api_key for models
@@ -27,6 +59,7 @@ function run(configs)
     local extensions = ExtensionManager:load(configs, configs.extensions)
 
     -- TODO: load tool definitions
+    local tools = load_tool_definitions()
 
     if extensions.chunk_receiver then
         extensions.chunk_receiver:show_reasoning(configs.show_reasoning and true or false)
@@ -35,7 +68,7 @@ function run(configs)
     local input_source = extensions.input_source
 
     if input_source then
-        TinyAgent:init(configs, extensions)
+        TinyAgent:init(configs, extensions, tools)
 
         while true do
             local user_message = input_source:input()

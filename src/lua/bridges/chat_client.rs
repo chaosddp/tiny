@@ -165,8 +165,15 @@ impl LuaChatClient {
 
                         debug!("response text: \n{0}", &resp_text);
 
-                        self.chat_provider
-                            .call_method::<LuaTable>("message", resp_text)?
+                        let assistant_message = self
+                            .chat_provider
+                            .call_method::<LuaTable>("message", resp_text)?;
+
+                        if let Some(chunk_rc) = &chunk_receiver {
+                            chunk_rc.call_method::<()>("message", &assistant_message)?;
+                        }
+
+                        assistant_message
                     }
                 }
                 Err(e) => {
@@ -229,12 +236,18 @@ impl LuaChatClient {
                         }
 
                         if let Some(chunk_rc) = &chunk_receiver {
-                            chunk_rc.call_method::<()>("receive", chunk_table)?;
+                            chunk_rc.call_method::<()>("chunk", chunk_table)?;
                         }
                     }
                 }
                 _ => {}
             }
+        }
+
+        if let Some(chunk_rc) = &chunk_receiver {
+            // tell receiver we reach the end of stream
+            let end_chunk = lua.create_table_from([("end", true)])?;
+            chunk_rc.call_method::<()>("chunk", end_chunk)?;
         }
 
         // our assistant message from chunks

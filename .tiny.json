@@ -7,7 +7,7 @@
             "provider": "ollama",
             "client": "openai",
             "base_url": "http://localhost:11434/v1",
-            "api_key": "env:MY_OLLAMA_API_KEY",
+            "api_key": "ollama",
             "stream": true,
             "max_tokens": 1024000
         }

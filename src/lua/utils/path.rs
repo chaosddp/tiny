@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{self, Path};
 
 use mlua::prelude::*;
 
@@ -12,6 +12,26 @@ pub fn is_file(_: &Lua, p: String) -> LuaResult<bool> {
 
 pub fn is_dir(_: &Lua, p: String) -> LuaResult<bool> {
     Ok(Path::new(&p).is_dir())
+}
+
+pub fn absolute(_: &Lua, p: String) -> LuaResult<String> {
+    let abp =
+        path::absolute(p).map_err(|_| mlua::Error::RuntimeError("invalid path: {}".to_string()))?;
+
+    Ok(abp.to_str().unwrap().to_string())
+}
+
+pub fn source_base_dir(_: &Lua, _: ()) -> LuaResult<String> {
+    let exe_path = std::env::current_exe()?;
+    let base_path = exe_path.parent().unwrap();
+
+    Ok(base_path.to_string_lossy().to_string())
+}
+
+pub fn working_dir(_: &Lua, _: ()) -> LuaResult<String> {
+    let cur_dir = std::env::current_dir()?;
+
+    Ok(cur_dir.to_string_lossy().to_string())
 }
 
 pub fn get_path_info(lua: &Lua, p: String) -> LuaResult<LuaTable> {
@@ -29,6 +49,18 @@ pub fn get_path_info(lua: &Lua, p: String) -> LuaResult<LuaTable> {
     Ok(info_table)
 }
 
+pub fn glob(lua: &Lua, pattern: String) -> LuaResult<LuaTable> {
+    let result = lua.create_table()?;
+
+    for entry in glob::glob(&pattern).map_err(|e| mlua::Error::RuntimeError(e.to_string()))? {
+        if let Ok(paths) = entry {
+            result.push(paths.to_string_lossy().to_string())?;
+        }
+    }
+
+    Ok(result)
+}
+
 pub fn register(lua: &Lua) -> LuaResult<()> {
     let path_table = lua.create_table()?;
 
@@ -36,6 +68,10 @@ pub fn register(lua: &Lua) -> LuaResult<()> {
     path_table.set("is_dir", lua.create_function(is_dir)?)?;
     path_table.set("exists", lua.create_function(is_path_exist)?)?;
     path_table.set("get_path_info", lua.create_function(get_path_info)?)?;
+    path_table.set("absolute", lua.create_function(absolute)?)?;
+    path_table.set("source_base_dir", lua.create_function(source_base_dir)?)?;
+    path_table.set("working_dir", lua.create_function(working_dir)?)?;
+    path_table.set("glob", lua.create_function(glob)?)?;
 
     lua.globals().set("path", path_table)?;
 

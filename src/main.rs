@@ -6,7 +6,7 @@ use mlua::prelude::*;
 
 use crate::core::TinyResult;
 use crate::core::error::Error as TinyError;
-use crate::lua::extensions::json::{json_to_lua, parse_json};
+use crate::lua::utils::json::{json_to_lua, parse_json};
 mod core;
 mod lua;
 
@@ -34,7 +34,7 @@ fn run() -> TinyResult<()> {
 
     let lua = Lua::new();
 
-    lua::extensions::prelude::register_all(&lua)?;
+    lua::utils::prelude::register_all(&lua)?;
     lua::bridges::register_all(&lua)?;
 
     // preload all builtin modules

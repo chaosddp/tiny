@@ -31,5 +31,25 @@ function Path.exists(s) end
 ---@return PathInfo
 function Path.get_path_info(s) end
 
+--- convert the path into absolute path
+---@param p string
+---@return string
+function Path.absolute(p) end
+
+--- get base dir of the execution
+---@return string
+function Path.source_base_dir()
+end
+
+--- get the path of current working dir
+--- @return string
+function Path.working_dir()
+end
+
+--- glob path by pattern
+--- @param pattern string @pattern to glob
+--- @return string[]
+function Path.glob(pattern)end
+
 ---@type Path
 path = {}

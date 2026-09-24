@@ -55,7 +55,7 @@ impl LuaToolExecutor {
                         debug!("Try to load tools from: {:?}", p);
 
                         if p.is_dir() {
-                            let info_file = p.join("info.lua");
+                            let info_file = p.join("tool.json");
                             let tool_file = p.join("tool.lua");
 
                             if info_file.exists()
@@ -96,7 +96,7 @@ impl LuaToolExecutor {
 
     fn init(&self) -> LuaResult<()> {
         // register our extensions
-        crate::lua::extensions::prelude::register_all(&self.lua)?;
+        crate::lua::utils::prelude::register_all(&self.lua)?;
 
         Ok(())
     }
