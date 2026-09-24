@@ -44,8 +44,6 @@ impl LuaToolExecutor {
     }
 
     pub fn load(&mut self, path: PathBuf) -> LuaResult<()> {
-        let globals = self.lua.globals();
-
         debug!("Loading tools from: {:?}", path);
 
         if let Ok(entrys) = glob(&format!("{}/*", path.to_str().unwrap())) {
