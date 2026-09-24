@@ -1,7 +1,8 @@
+use std::path;
 use std::{fs::File, io::Read};
 
 use log::error;
-use mlua::Lua;
+use mlua::prelude::*;
 
 use crate::core::TinyResult;
 use crate::core::error::Error as TinyError;
@@ -41,14 +42,40 @@ fn run() -> TinyResult<()> {
 
     require_func.call::<()>("tiny")?;
 
-    let mut script = String::new();
+    let exe_path = std::env::current_exe()?;
+    let exe_dir = exe_path.parent().unwrap();
+    let extension_root_path = path::absolute(exe_dir)?.join("extensions");
 
-    {
-        let mut fp = File::open("main.lua")?;
-        fp.read_to_string(&mut script)?;
-    }
+    let globals = lua.globals();
+    let pacakge_table = globals.get::<LuaTable>("package")?;
+    let old_package_path = pacakge_table.get::<String>("path")?;
+    let new_package_path = format!(
+        "{};{}/?.lua;{}/?/init.lua",
+        old_package_path,
+        extension_root_path.to_str().unwrap(),
+        extension_root_path.to_str().unwrap()
+    );
 
-    lua.load(script).exec()?;
+    pacakge_table.set("path", new_package_path)?;
+    // let mut script = String::new();
+
+    // {
+    //     let mut fp = File::open("main.lua")?;
+    //     fp.read_to_string(&mut script)?;
+    // }
+
+    // lua.load(script).exec()?;
+
+    lua.load(
+        r#"
+        local run = require "tiny.main"
+
+        print("run")
+
+        run()
+    "#,
+    )
+    .exec()?;
 
     Ok(())
 }

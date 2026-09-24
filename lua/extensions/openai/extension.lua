@@ -1,11 +1,9 @@
-local OpenAIChatProvider = require "openai_provider"
+local OpenAIChatProvider = require "extensions.openai.openai_provider"
 
+---@param ctx      ExtensionRegisterContext
+---@param configs? string
 local function register(ctx, configs)
-    ctx.chat_clients.add("openai", ChatClient(OpenAIChatProvider))
+    ctx.add_chat_client("openai", ChatClient(OpenAIChatProvider))
 end
 
-return {
-    name = "builtin_openai_chat_client",
-    description = "Builtin OpenAI chat client",
-    register = register
-}
+return register
