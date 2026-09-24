@@ -12,3 +12,6 @@ local IChunkReceiver = {}
 
 ---@param chunk Chunk
 function IChunkReceiver:receive(chunk) end
+
+---@param b boolean @if show reasning content
+function IChunkReceiver:show_reasoning(b) end

@@ -1,0 +1,19 @@
+{
+    "default_model": "ollama/qwen3.5",
+    "show_reasoning": false,
+    "models": {
+        "ollama/qwen3.5": {
+            "model": "qwen3.5",
+            "provider": "ollama",
+            "client": "openai",
+            "base_url": "http://localhost:11434/v1",
+            "api_key": "env:MY_OLLAMA_API_KEY",
+            "stream": true,
+            "max_tokens": 1024000
+        }
+    },
+    "extensions": [
+        "openai",
+        "default"
+    ]
+}

@@ -2,7 +2,7 @@
 local DefaultInputSource = {}
 
 function DefaultInputSource:input()
-    io.write("\nInput you message: ")
+    io.write("\n\n[User]\n\n")
     return io.read("l")
 end
 

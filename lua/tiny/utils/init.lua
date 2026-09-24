@@ -1,1 +1,1 @@
-require "tiny.extensions.table_extensions"
+require "tiny.utils.table_utils"
