@@ -1,7 +1,11 @@
-
-- [] base agent structure with plugin enabled
-- [] how to configure the application to support more options?
-  - [] put all the plugins into a folder under $HOME/tiny/plugins?
-  - [] or load a folder with plugins at start time: tiny --plugins /path/to/plugins --tool /path/to/tools. we can save these command line to a config file, and make it as default, so we do not need these parameters every time. With this we can construct our agent for different usage without affect each other.
-- [] plugins: we need figure out what kind of plugin to support
-- 
+- [ ] error handling
+  - [ ] the base agent loop will handle erorrs, then ask extensions about strategy, default is stop the agent, if there is not any handler 
+- [ ] tool definition loader
+- [ ] tool execution sandbox
+- [ ] tool execution permission
+- [ ] tool execution confirm
+- [ ] more agent loop callbacks
+  - [ ] update/inject system prompts - with this we can support Skills
+  - [ ] callback at each loop life cycle, like start, end, error, message
+- [ ] a rust based TUI sample - low priority, used to make sure we can support this
+- [ ] a rust based GUI sample - low priority, used to make sure we can support this
