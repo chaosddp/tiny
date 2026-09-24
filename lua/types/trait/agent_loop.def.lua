@@ -4,10 +4,10 @@
 ---@field tools?   Tool[]
 local AgentLoopContext = {}
 
----@class AgentLoopPlugins
+---@class AgentLoopExtensions
 ---@field chat_client     IChatClient
 ---@field tool_executor?  IToolExecutor
 ---@field chunk_receiver? IChunkReceiver
-local AgentLoopPlugins = {}
+local AgentLoopExtensions = {}
 
----@alias AgentLoop fun(ctx: AgentLoopContext, plugins: AgentLoopPlugins): void
+---@alias AgentLoop fun(ctx: AgentLoopContext, extensions: AgentLoopExtensions): void

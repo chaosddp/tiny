@@ -4,11 +4,11 @@ local ipairs = ipairs
 
 --- base agent loop for new user message
 ---@param ctx     AgentLoopContext
----@param plugins AgentLoopPlugins
-local function agent_loop(ctx, plugins)
+---@param extensions AgentLoopExtensions
+local function agent_loop(ctx, extensions)
   local is_model_support_tools = true
 
-  if is_model_support_tools and plugins.tool_executor == nil then
+  if is_model_support_tools and extensions.tool_executor == nil then
     is_model_support_tools = false
   end
 
@@ -17,11 +17,11 @@ local function agent_loop(ctx, plugins)
   end
 
   while true do
-    local message = plugins.chat_client:chat(
+    local message = extensions.chat_client:chat(
       ctx.messages,
       ctx.options,
       is_model_support_tools and ctx.tools or nil,
-      plugins.chunk_receiver
+      extensions.chunk_receiver
     )
 
     table.insert(ctx.messages, message)
@@ -32,16 +32,16 @@ local function agent_loop(ctx, plugins)
       break
     end
 
-    ---@cast plugins.tool_executor - nil
+    ---@cast extensions.tool_executor - nil
     for _, tool_call in ipairs(message.tool_calls) do
-      local tool_result = plugins.tool_executor:execute(
+      local tool_result = extensions.tool_executor:execute(
         tool_call.name,
         tool_call.id,
         tool_call.arguments
       )
 
-      if plugins.chunk_receiver then
-        plugins.chunk_receiver:receive({ tool_result = tool_result })
+      if extensions.chunk_receiver then
+        extensions.chunk_receiver:receive({ tool_result = tool_result })
       end
 
       ---@type ToolMessage
