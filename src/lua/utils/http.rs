@@ -17,7 +17,8 @@ fn send_http_request(
     headers: Option<LuaTable>,
     callback: Option<LuaFunction>,
 ) -> LuaResult<Option<LuaValue>> {
-    let result: Option<LuaValue>;
+    #[allow(unused)]
+    let mut result = None;
 
     let mut request_builder = client.client.request(method, url);
 

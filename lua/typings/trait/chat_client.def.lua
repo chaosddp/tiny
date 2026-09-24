@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-return
 ---@alias ThinkingType "enabled" | "disabled" | "adaptive" | string
 ---@alias ReasoningEffort "low" | "medium" | "high" | string
 

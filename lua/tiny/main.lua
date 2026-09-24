@@ -56,9 +56,9 @@ function run(configs)
         end
     end
 
+    ---@type Extensions
     local extensions = ExtensionManager:load(configs, configs.extensions)
 
-    -- TODO: load tool definitions
     local tools = load_tool_definitions()
 
     if extensions.chunk_receiver then

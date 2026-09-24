@@ -49,7 +49,7 @@ local ExtensionManager = {}
 ---@param configs    table<string, any>
 ---@param extensions table<string, any>
 function ExtensionManager:load(configs, extensions)
-    if not extensions or #extensions == 0 then return end
+    if not extensions or #extensions == 0 then return loaded_extensions end
 
     for _, ext_name in ipairs(extensions) do
         local extension_module_path = "extensions." .. ext_name .. ".extension"

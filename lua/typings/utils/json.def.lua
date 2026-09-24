@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-return
 ---@class Json
 local Json = {}
 
@@ -12,5 +13,6 @@ function Json.load(s) end
 ---@return string
 function Json.dump(o, pretty) end
 
+---@diagnostic disable-next-line: missing-fields
 ---@type Json
 json = {}

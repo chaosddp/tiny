@@ -108,7 +108,7 @@ local function tool_to_openai(tool)
     }
 end
 
----@type ChatProvider
+---@class OpenAIChatProvider: ChatProvider
 local OpenAIChatProvider = {}
 
 function OpenAIChatProvider:request(messages, options, tools)
@@ -182,10 +182,10 @@ function OpenAIChatProvider:message(message_str)
             usage = full_message.usage
         }
 
-        return message
+        return true, message
     end
 
-    return {}
+    return false, "fail to parse the message string"
 end
 
 return OpenAIChatProvider

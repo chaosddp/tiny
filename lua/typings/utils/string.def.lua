@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-return
 --- convert string into utf-8 byte string
 ---@return string
 function string.to_utf8_bytes(s) end

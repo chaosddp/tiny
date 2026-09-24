@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-return
 ---@class PathInfo
 ---@field is_dir     boolean @if the path is a dir
 ---@field is_file    boolean @if the path is a file
@@ -42,14 +43,15 @@ function Path.source_base_dir()
 end
 
 --- get the path of current working dir
---- @return string
+---@return string
 function Path.working_dir()
 end
 
 --- glob path by pattern
---- @param pattern string @pattern to glob
---- @return string[]
-function Path.glob(pattern)end
+---@param pattern string @pattern to glob
+---@return string[]
+function Path.glob(pattern) end
 
+---@diagnostic disable-next-line: missing-fields
 ---@type Path
 path = {}

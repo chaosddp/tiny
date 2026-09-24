@@ -1,4 +1,4 @@
----@type IInputSource
+---@class DefaultInputSource: IInputSource
 local DefaultInputSource = {}
 
 function DefaultInputSource:input()
