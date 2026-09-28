@@ -3,6 +3,8 @@ name = "tiny"
 version = "0.1.0"
 edition = "2024"
 
+default-run = "tiny"
+
 [dependencies]
 log = "0.4.34"
 bytes = "1.12.1"
