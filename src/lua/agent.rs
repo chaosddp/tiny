@@ -15,6 +15,11 @@ impl TinyAgent {
         Self { lua }
     }
 
+    #[cfg(feature = "tui")]
+    pub fn weak(&self) -> WeakLua {
+        self.lua.weak()
+    }
+
     pub fn init(&self) -> TinyResult<()> {
         // register our lua utilities and bridge wrappers
         crate::lua::utils::prelude::register_all(&self.lua)?;

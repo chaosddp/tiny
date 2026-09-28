@@ -1,4 +1,5 @@
 ---@class Chunk
+---@field id string
 ---@field content?       string
 ---@field reasoning?     string
 ---@field tool_call?     ToolCall

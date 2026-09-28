@@ -145,7 +145,7 @@ function OpenAIChatProvider:chunk(chunk_str)
     local chunk_message = json.load(chunk_str)
 
     ---@type Chunk
-    local chunk = {}
+    local chunk = { id = chunk_message.id }
 
     if chunk_message.choices and #chunk_message.choices > 0 then
         local first_choice = chunk_message.choices[1]
