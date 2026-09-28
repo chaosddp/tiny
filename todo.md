@@ -6,3 +6,4 @@
 - [ ] more agent loop callbacks
   - [ ] update/inject system prompts - with this we can support Skills
   - [ ] callback at each loop life cycle, like start, end, error, message
+- [ ] gracefule exit
