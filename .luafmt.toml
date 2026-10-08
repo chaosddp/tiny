@@ -1,0 +1,12 @@
+[syntax]
+level = "LuaJIT"
+
+[indent]
+kind = "Space"
+width = 2
+
+[layout]
+max_line_width = 100
+prefer_call_args_layout_from_source = true
+prefer_table_layout_from_source = true
+prefer_binary_chain_operand_per_line = true

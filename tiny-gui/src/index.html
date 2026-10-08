@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="color-scheme" content="light dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/pico.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Tauri App</title>
+  <script src="js/alpinejs.min.js" defer></script>
+  <script type="module" src="/main.js" defer></script>
+</head>
+
+
+<body>
+  <main class="container" x-data="{ statuses: ['open', 'closed', 'archived'] }">
+    <template x-for="status in statuses">
+      <div x-text="status"></div>
+    </template>
+  </main>
+
+  <!-- <main class="container">
+    <h1>Welcome to Tauri</h1>
+
+    <div class="row">
+      <a href="https://tauri.app" target="_blank">
+        <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
+      </a>
+      <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
+        <img src="/assets/javascript.svg" class="logo vanilla" alt="JavaScript logo" />
+      </a>
+    </div>
+    <p>Click on the Tauri logo to learn more about the framework</p>
+
+    <form class="row" id="greet-form">
+      <input id="greet-input" placeholder="Enter a name..." />
+      <button type="submit">Greet</button>
+    </form>
+    <p id="greet-msg"></p>
+  </main> -->
+</body>
+
+</html>

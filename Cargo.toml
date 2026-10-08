@@ -1,0 +1,23 @@
+[workspace]
+resolver = "3"
+members = ["tiny-cli","tiny-client","tiny-core", "tiny-gui/src-tauri"]
+
+[workspace.dependencies]
+tauri = "2"
+tauri-plugin-opener = "2"
+log = "0.4.34"
+bytes = "1.12.1"
+thiserror = "2.0.19"
+anyhow = "1.0.104"
+serde = "1.0.229"
+serde_json = "1.0.151"
+reqwest = "0.13.4"
+base64 = "0.23.1"
+utf16string = "0.2.0"
+clap = "4.6.7"
+env_logger = "0.11.11"
+glob = "0.3.4"
+
+
+
+tauri-build = "2"

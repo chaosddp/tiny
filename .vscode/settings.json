@@ -1,0 +1,7 @@
+{
+    "emmylua.codeLens.enable": true,
+    "luahelper.base.ignoreFileOrDir": [
+        ".vscode/",
+        "types/"
+    ]
+}
