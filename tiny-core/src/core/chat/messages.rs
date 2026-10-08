@@ -7,7 +7,7 @@ pub enum ImageDetail {
     Low,
     Other(String),
 }
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum FinishReason {
     Stop,
     Length,
