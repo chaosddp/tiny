@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tiny-client = { path = "../tiny-client" }
+tiny-core = { path = "../tiny-core" }
 
 clap = { workspace = true, features = ["derive"] }

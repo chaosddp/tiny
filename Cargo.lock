@@ -4387,11 +4387,11 @@ name = "tiny"
 version = "0.1.0"
 dependencies = [
  "clap",
- "tiny-client",
+ "tiny-core",
 ]
 
 [[package]]
-name = "tiny-client"
+name = "tiny-core"
 version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
@@ -4400,13 +4400,9 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "tiny-core",
+ "thiserror 2.0.21",
  "utf16string",
 ]
-
-[[package]]
-name = "tiny-core"
-version = "0.1.0"
 
 [[package]]
 name = "tiny-gui"
@@ -4417,7 +4413,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
- "tiny-client",
+ "tiny-core",
 ]
 
 [[package]]

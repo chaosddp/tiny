@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["tiny-cli", "tiny-client", "tiny-core", "tiny-gui/src-tauri"]
+members = ["tiny-cli", "tiny-core", "tiny-gui/src-tauri"]
 
 default-members = ["tiny-cli"]
 
