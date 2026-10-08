@@ -1,0 +1,3 @@
+[alias]
+gui-dev = "tauri dev tiny-gui"
+gui-build = "tauri build"
