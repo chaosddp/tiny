@@ -1,5 +1,5 @@
 [syntax]
-level = "LuaJIT"
+level = "Lua55"
 
 [indent]
 kind = "Space"

@@ -4,3 +4,19 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tiny-core = { path = "../tiny-core" }
+
+base64 = { workspace = true }
+reqwest = { workspace = true, features = ["json", "stream", "blocking"] }
+mlua = { workspace = true, features = [
+    "lua55",
+    "vendored",
+    "anyhow",
+    "macros",
+    "serde",
+    "send",
+] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+glob = { workspace = true }
+utf16string = { workspace = true }

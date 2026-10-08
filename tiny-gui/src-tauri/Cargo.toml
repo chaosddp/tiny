@@ -18,6 +18,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { workspace = true, features = [] }
 
 [dependencies]
+tiny-client = { path = "../../tiny-client" }
+
 tauri = { workspace = true, features = [] }
 tauri-plugin-opener = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

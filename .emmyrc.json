@@ -23,7 +23,7 @@
         "syntax": "md"
     },
     "runtime": {
-        "version": "LuaJIT",
+        "version": "Lua5.5",
         "requirePattern": [
             "?.lua",
             "?/init.lua"
