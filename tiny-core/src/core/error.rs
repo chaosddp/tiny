@@ -1,3 +1,5 @@
+use std::sync::mpsc;
+
 /// Error from this application
 #[allow(dead_code)]
 #[derive(thiserror::Error, Debug)]
@@ -25,5 +27,23 @@ impl From<std::io::Error> for Error {
 impl From<mlua::Error> for Error {
     fn from(value: mlua::Error) -> Self {
         Error::LuaError(value)
+    }
+}
+
+impl<T> From<mpsc::SendError<T>> for Error {
+    fn from(value: mpsc::SendError<T>) -> Self {
+        Error::RuntimeError(value.to_string())
+    }
+}
+
+impl From<mpsc::RecvError> for Error {
+    fn from(value: mpsc::RecvError) -> Self {
+        Error::RuntimeError(value.to_string())
+    }
+}
+
+impl From<mpsc::RecvTimeoutError> for Error {
+    fn from(value: mpsc::RecvTimeoutError) -> Self {
+        Error::RuntimeError(value.to_string())
     }
 }

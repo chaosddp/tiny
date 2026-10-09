@@ -280,6 +280,12 @@ impl FromLua for UserMessage {
     }
 }
 
+impl Into<UserMessage> for &str {
+    fn into(self) -> UserMessage {
+        UserMessage::Text(self.into())
+    }
+}
+
 ///
 /// generate following lua table
 ///

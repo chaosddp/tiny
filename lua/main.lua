@@ -1,5 +1,4 @@
 require 'table_utils'
 local OpenAIChatProvider = require "openai"
 
-
-tiny.chat_client = OpenAIChatProvider
+tiny.chat_clients.openai = OpenAIChatProvider.new()

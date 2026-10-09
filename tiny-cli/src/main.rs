@@ -1,5 +1,7 @@
+use std::{cell::RefCell, io::Write, ops::Deref};
+
 use clap::{Parser, Subcommand, ValueEnum};
-use tiny_core::agent::agent::TinyAgent;
+use tiny_core::{agent::agent::TinyAgent, core::agent::ChunkReceiver};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ThiinkingEffort {
@@ -82,6 +84,90 @@ enum SessionCommands {
     List,
 }
 
+enum ChunkingState {
+    None,
+    Content,
+    Reasoning,
+}
+
+impl Default for ChunkingState {
+    fn default() -> Self {
+        ChunkingState::None
+    }
+}
+
+#[derive(Default)]
+struct ConsoleChunkReceiver {
+    id: RefCell<Option<String>>,
+    state: RefCell<ChunkingState>,
+}
+
+impl ConsoleChunkReceiver {
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl ChunkReceiver for ConsoleChunkReceiver {
+    fn recv(&self, chunk: tiny_core::core::chat::chunk::Chunk) -> tiny_core::core::TinyResult<()> {
+        let mut id = self.id.borrow_mut();
+
+        match id.deref() {
+            Some(nid) => {
+                if nid != &chunk.id {
+                    std::io::stdout().write("\n\n".as_bytes())?;
+                    std::io::stdout().flush()?;
+
+                    *id = Some(chunk.id);
+                }
+            }
+            None => {
+                *id = Some(chunk.id);
+            }
+        }
+
+        if let Some(content) = chunk.content
+            && content.len() > 0
+        {
+            let mut state = self.state.borrow_mut();
+
+            match *state {
+                ChunkingState::Content => {}
+                _ => {
+                    std::io::stdout().write("\n\n[ Assistant ]\n\n".as_bytes())?;
+                    std::io::stdout().flush()?;
+
+                    *state = ChunkingState::Content;
+                }
+            }
+
+            std::io::stdout().write(content.as_bytes())?;
+            std::io::stdout().flush()?;
+        }
+
+        if let Some(reasoning) = chunk.reasoning
+            && reasoning.len() > 0
+        {
+            let mut state = self.state.borrow_mut();
+
+            match *state {
+                ChunkingState::Reasoning => {}
+                _ => {
+                    std::io::stdout().write("[ Reasoning ]\n\n".as_bytes())?;
+                    std::io::stdout().flush()?;
+
+                    *state = ChunkingState::Reasoning;
+                }
+            }
+
+            std::io::stdout().write(reasoning.as_bytes())?;
+            std::io::stdout().flush()?;
+        }
+
+        Ok(())
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
@@ -106,10 +192,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //     }
     // }
 
-    // let lua = Lua::new();
-    let agent = TinyAgent::new()?;
+    let chunk_receiver: Box<dyn ChunkReceiver> = Box::new(ConsoleChunkReceiver::new());
 
-    agent.run()?;
+    let mut agent = TinyAgent::new(chunk_receiver)?;
+
+    agent.chat("openai", "who are you?".into())?;
 
     Ok(())
 }
