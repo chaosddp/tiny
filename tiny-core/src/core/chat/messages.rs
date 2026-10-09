@@ -139,6 +139,216 @@ impl IntoLua for FinishReason {
     }
 }
 
+impl FromLua for UserContentPart {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
+        let LuaValue::Table(table) = value else {
+            return Err(mlua::Error::UserDataTypeMismatch);
+        };
+
+        let p_type: String = table.get("type")?;
+
+        match p_type.as_ref() {
+            "text" => Ok(UserContentPart::Text(table.get("text")?)),
+            "file" => Ok(UserContentPart::File(table.get("file")?)),
+            "video" => Ok(UserContentPart::Video(table.get("video")?)),
+            "image" => Ok(UserContentPart::Image {
+                image: table.get("image")?,
+                detail: table.get("detail").unwrap_or(ImageDetail::Auto),
+            }),
+            _ => Err(mlua::Error::UserDataTypeMismatch),
+        }
+    }
+}
+
+///
+/// generate following lua table:
+///
+/// 1. text
+/// {
+///     type = "text",
+///     text = "text part"
+/// }
+///
+/// 2. file
+/// {
+///     type = "file",
+///     file = "file_url"
+/// }
+///
+/// 3. video
+/// {
+///     type = "video",
+///     video = "video_url"
+/// }
+///
+/// 3. image
+/// {
+///     type = "image",
+///     image = "image data url",
+///     detail = "auto"
+/// }
+///
+impl IntoLua for &UserContentPart {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
+        let table = lua.create_table()?;
+
+        match self {
+            UserContentPart::Text(t) => {
+                table.set("type", "text")?;
+                table.set("text", t.to_string())?;
+            }
+            UserContentPart::File(f) => {
+                table.set("type", "file")?;
+                table.set("file", f.to_string())?;
+            }
+            UserContentPart::Video(v) => {
+                table.set("type", "video")?;
+                table.set("video", v.to_string())?;
+            }
+            UserContentPart::Image { image, detail } => {
+                table.set("type", "image")?;
+                table.set("image", image.to_string())?;
+                table.set("detail", detail.clone())?;
+            }
+        }
+
+        Ok(LuaValue::Table(table))
+    }
+}
+
+///
+/// generate following lua table
+///
+/// 1. text
+/// {
+///     content = "text content"
+/// }
+///
+/// 2. parts
+/// {
+///     parts = {
+///         {
+///             type = "text",
+///             text = "text content"
+///         },
+///         {
+///             type = "image",
+///             image = "data:image/jpg,base64;...",
+///         }
+///     }
+/// }
+impl IntoLua for &UserMessage {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
+        let table = lua.create_table()?;
+
+        match self {
+            UserMessage::Text(t) => {
+                table.set("content", t.to_string())?;
+            }
+            UserMessage::Parts(parts) => {
+                let parts_table = lua.create_table()?;
+
+                for part in parts {
+                    parts_table.push(part)?;
+                }
+
+                table.set("parts", parts_table)?;
+            }
+        }
+
+        Ok(LuaValue::Table(table))
+    }
+}
+
+impl FromLua for UserMessage {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
+        match value {
+            LuaValue::Table(table) => {
+                if let Some(content) = table.get::<Option<String>>("content")? {
+                    Ok(UserMessage::Text(content))
+                } else {
+                    Ok(UserMessage::Parts(table.get("parts")?))
+                }
+            }
+            _ => Err(mlua::Error::UserDataTypeMismatch),
+        }
+    }
+}
+
+///
+/// generate following lua table
+///
+/// 1. system
+/// {
+///     role = "system",
+///     content = "system prompt"
+/// }
+///
+/// 2. assistant
+/// {
+///     role = "assistant",
+///     content = "content",
+///     reasoning = "reasoning content",
+///     reasoning_details = {"detail1"},
+///     finish_reason = "stop",
+///     usages = {
+///         prompt: 0,
+///         completion: 0,
+///         total: 0
+///     }
+/// }
+///
+/// 3. tool
+/// {
+///     role = "tool",
+///     name = "my_tool_name",
+///     cotnent = "tool result"
+/// }
+///
+/// 4. user
+/// {
+///     role = "user",
+///     content = "content", --optional, content or parts
+///     parts = {
+///         ...
+///     }
+/// }
+impl IntoLua for &ChatMessage {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
+        match self {
+            ChatMessage::System(prompt) => {
+                let table = lua.create_table()?;
+
+                table.set("role", "system")?;
+                table.set("content", prompt.to_string())?;
+
+                Ok(LuaValue::Table(table))
+            }
+            ChatMessage::Assistant(msg) => {
+                let table = msg.clone().into_lua(lua)?;
+
+                table.as_table().unwrap().set("role", "assistant")?;
+
+                Ok(table)
+            }
+            ChatMessage::Tool(msg) => {
+                let table = msg.clone().into_lua(lua)?;
+
+                table.as_table().unwrap().set("role", "tool")?;
+
+                Ok(table)
+            }
+            ChatMessage::User(msg) => {
+                let table = msg.into_lua(lua)?;
+
+                table.as_table().unwrap().set("role", "user")?;
+
+                Ok(table)
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
