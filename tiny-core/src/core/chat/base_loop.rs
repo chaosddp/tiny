@@ -49,7 +49,7 @@ impl BaseLoop {
         chat_client: &Box<dyn ChatClient>,
         tool_executor: Option<&Box<dyn ToolExecutor>>,
         chunk_receiver: Option<&Box<dyn ChunkReceiver>>,
-        ctx: &LoopContext,
+        _ctx: &LoopContext,
     ) -> TinyResult<()> {
         // TODO: notify before loop start
 

@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tiny-macros ={ path="../tiny-macros" }
+
 thiserror = { workspace = true }
 base64 = { workspace = true }
 reqwest = { workspace = true, features = ["json", "stream", "blocking"] }

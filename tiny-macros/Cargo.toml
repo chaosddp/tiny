@@ -1,0 +1,11 @@
+[package]
+name = "tiny-macros"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { workspace = true, features=["derive"]}
+quote = { workspace = true }

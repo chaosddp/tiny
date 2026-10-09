@@ -4403,6 +4403,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "tiny-macros",
  "utf16string",
 ]
 
@@ -4416,6 +4417,14 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-opener",
  "tiny-core",
+]
+
+[[package]]
+name = "tiny-macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 3.0.6",
 ]
 
 [[package]]
