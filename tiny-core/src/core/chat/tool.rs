@@ -1,8 +1,7 @@
-use mlua::{FromLua, IntoLua, Lua, prelude::*};
 use serde::{Deserialize, Serialize};
-use tiny_macros::IntoLuaTable;
+use tiny_macros::{FromLuaTable, IntoLuaTable};
 
-#[derive(Debug, Deserialize, Serialize, Clone, FromLua, IntoLuaTable)]
+#[derive(Debug, Deserialize, Serialize, Clone, FromLuaTable, IntoLuaTable)]
 pub struct ToolParameter {
     pub name: String,
     pub description: String,
@@ -10,7 +9,7 @@ pub struct ToolParameter {
     pub required: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, FromLua, IntoLuaTable)]
+#[derive(Debug, Deserialize, Serialize, Clone, FromLuaTable, IntoLuaTable)]
 pub struct Tool {
     pub name: String,
     pub description: String,

@@ -31,7 +31,7 @@ pub fn into_lua_table(input: TokenStream) -> TokenStream {
     }
 
     quote! {
-       impl IntoLua for #id {
+       impl mlua::IntoLua for #id {
             fn into_lua(self, lua: &mlua::prelude::Lua) -> mlua::prelude::LuaResult<mlua::prelude::LuaValue> {
                 let table = lua.create_table()?;
                 # fields_ast
@@ -71,14 +71,14 @@ pub fn from_lua_table(input: TokenStream) -> TokenStream {
     }
 
     quote! {
-        impl FromLua for #id {
+        impl mlua::FromLua for #id {
             fn from_lua(value: mlua::prelude::LuaValue, _: &mlua::prelude::Lua) -> mlua::prelude::LuaResult<Self> {
                 match value {
                     mlua::prelude::LuaValue::Table(t) => Ok(Self {
                         #fields_ast
                     }),
                     _ => {
-                        println!("{:?}", value);
+                        // println!("{:?}", value);
 
                         Err(mlua::Error::UserDataTypeMismatch)
                     },
