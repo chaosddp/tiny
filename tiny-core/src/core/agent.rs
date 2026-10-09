@@ -3,8 +3,11 @@ use serde::{Deserialize, Serialize};
 use tiny_macros::IntoLuaTable;
 
 use crate::core::{
-    TinyResult, chat::{
-        chunk::Chunk, messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage}, tool::Tool,
+    TinyResult,
+    chat::{
+        chunk::Chunk,
+        messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage},
+        tool::Tool,
     },
 };
 
@@ -29,23 +32,25 @@ pub struct ChatOptions {
     pub reasoning_effort: Option<String>,
 }
 
-pub trait ChunkReceiver {
-    fn recv(&self, chunk: Chunk) -> TinyResult<()>;
-}
+// pub trait ChunkReceiver {
+//     fn recv(&self, chunk: Chunk) -> TinyResult<()>;
+// }
 
-pub trait ChatClient {
-    fn chat(
-        &self,
-        messages: &Vec<ChatMessage>,
-        tools: Option<&Vec<Tool>>,
-        options: &ChatOptions,
-        chunk_receiver: Option<&Box<dyn ChunkReceiver>>,
-    ) -> TinyResult<AssistantMessage>;
-}
+// pub trait ChatClient {
+//     fn chat<F>(
+//         &self,
+//         messages: &Vec<ChatMessage>,
+//         tools: Option<&Vec<Tool>>,
+//         options: &ChatOptions,
+//         chunk_receiver: Option<F>,
+//     ) -> TinyResult<AssistantMessage>
+//     where
+//         F: Fn(Chunk) -> TinyResult<()> + 'static;
+// }
 
-pub trait ToolExecutor {
-    fn execute(&self, name: &str, arguments: Option<&str>) -> TinyResult<String>;
-}
+// pub trait ToolExecutor {
+//     fn execute(&self, name: &str, arguments: Option<&str>) -> TinyResult<String>;
+// }
 
 #[derive(Debug, Default)]
 pub struct BaseLoop();
@@ -53,16 +58,27 @@ pub struct BaseLoop();
 pub struct LoopContext {}
 
 impl BaseLoop {
-    pub fn execute(
+    pub fn execute<CC, CR, TE>(
         &self,
         messages: &mut Vec<ChatMessage>,
         options: &ChatOptions,
-        chat_client: &Box<dyn ChatClient>,
+        chat_client: CC,
         tools: Option<&Vec<Tool>>,
-        tool_executor: Option<&Box<dyn ToolExecutor>>,
-        chunk_receiver: Option<&Box<dyn ChunkReceiver>>,
+        tool_executor: Option<TE>,
+        chunk_receiver: Option<CR>,
         _ctx: &LoopContext,
-    ) -> TinyResult<()> {
+    ) -> TinyResult<()>
+    where
+        CC: Fn(
+                &Vec<ChatMessage>,
+                Option<&Vec<Tool>>,
+                &ChatOptions,
+                &Option<CR>,
+            ) -> TinyResult<AssistantMessage>
+            + 'static,
+        CR: Fn(Chunk) -> TinyResult<()> + 'static,
+        TE: Fn(&str, Option<&str>) -> TinyResult<String> + 'static,
+    {
         // TODO: notify before loop start
 
         loop {
@@ -73,14 +89,14 @@ impl BaseLoop {
             // TODO: session update
 
             // TODO: error handling: call chat fail strategy with and response, retry? cancel? patching?
-            let message = chat_client.chat(messages, tools, options, chunk_receiver)?;
+            let message = chat_client(messages, tools, options, &chunk_receiver)?;
 
             // TODO: notify about chat client response
 
             let orig_size = messages.len();
 
             if message.finish_reason == FinishReason::ToolCall
-                && let Some(tool_exector) = tool_executor
+                && let Some(tool_exector) = &tool_executor
                 && let Some(tool_calls) = &message.tool_calls
             {
                 if tool_calls.len() > 0 {
@@ -90,8 +106,8 @@ impl BaseLoop {
                         // TODO: notify about tool call detail
 
                         // TODO: error hanling: retry? cancel?
-                        let tool_result = tool_exector
-                            .execute(&tool_call.name, tool_call.arguments.as_deref())?;
+                        let tool_result =
+                            tool_exector(&tool_call.name, tool_call.arguments.as_deref())?;
 
                         // TODO: notify about tool call result
 

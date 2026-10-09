@@ -2,7 +2,7 @@ use std::io::{BufRead, BufReader};
 
 use crate::core::{
     TinyResult,
-    agent::{ChatClient, ChatOptions, ChunkReceiver},
+    agent::ChatOptions,
     chat::{
         chunk::Chunk,
         messages::{AssistantMessage, ChatMessage},
@@ -46,14 +46,17 @@ impl LuaChatClient {
     }
 }
 
-impl ChatClient for LuaChatClient {
-    fn chat(
+impl LuaChatClient {
+    pub fn chat<F>(
         &self,
         messages: &Vec<ChatMessage>,
         tools: Option<&Vec<Tool>>,
         options: &ChatOptions,
-        chunk_receiver: Option<&Box<dyn ChunkReceiver>>,
-    ) -> TinyResult<AssistantMessage> {
+        chunk_receiver: Option<F>,
+    ) -> TinyResult<AssistantMessage>
+    where
+        F: Fn(Chunk) -> TinyResult<()>,
+    {
         let lua = self.lua.try_upgrade().ok_or(Error::InvalidLuaReference)?;
 
         let lua_messages = lua.create_table()?;
@@ -143,11 +146,14 @@ impl ChatClient for LuaChatClient {
 }
 
 impl LuaChatClient {
-    fn process_sse_chunks(
+    fn process_sse_chunks<F>(
         &self,
-        chunk_receiver: Option<&Box<dyn ChunkReceiver>>,
+        chunk_receiver: Option<F>,
         resp: reqwest::blocking::Response,
-    ) -> TinyResult<AssistantMessage> {
+    ) -> TinyResult<AssistantMessage>
+    where
+        F: Fn(Chunk) -> TinyResult<()>,
+    {
         let mut content = String::new();
         let mut reasoning_content = String::new();
         let mut finish_reason = None;
@@ -185,7 +191,7 @@ impl LuaChatClient {
                         }
 
                         if let Some(chunk_rc) = &chunk_receiver {
-                            chunk_rc.recv(chunk)?;
+                            chunk_rc(chunk)?;
                         }
                     }
                 }

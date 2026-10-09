@@ -14,11 +14,11 @@
 
 
 <body>
-  <main class="container" x-data="{ statuses: ['open', 'closed', 'archived'] }">
+  <!-- <main class="container" x-data="{ statuses: ['open', 'closed', 'archived'] }">
     <template x-for="status in statuses">
       <div x-text="status"></div>
     </template>
-  </main>
+  </main> -->
 
   <!-- <main class="container">
     <h1>Welcome to Tauri</h1>
@@ -39,6 +39,14 @@
     </form>
     <p id="greet-msg"></p>
   </main> -->
+  <main class="container">
+    <p id="output"></p>
+
+    <form class="row" id="chat-form">
+      <input id="user-input" type="text" placeholder="enter message here" />
+      <button type="submit" >Send</button>
+    </form>
+  </main>
 </body>
 
 </html>

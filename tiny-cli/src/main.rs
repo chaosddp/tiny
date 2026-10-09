@@ -1,7 +1,7 @@
 use std::{cell::RefCell, io::Write, ops::Deref};
 
 use clap::{Parser, Subcommand, ValueEnum};
-use tiny_core::{agent::agent::TinyAgent, core::agent::ChunkReceiver};
+use tiny_core::agent::agent::TinyAgent;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ThiinkingEffort {
@@ -108,7 +108,7 @@ impl ConsoleChunkReceiver {
     }
 }
 
-impl ChunkReceiver for ConsoleChunkReceiver {
+impl ConsoleChunkReceiver {
     fn recv(&self, chunk: tiny_core::core::chat::chunk::Chunk) -> tiny_core::core::TinyResult<()> {
         let mut id = self.id.borrow_mut();
 
@@ -192,11 +192,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //     }
     // }
 
-    let chunk_receiver: Box<dyn ChunkReceiver> = Box::new(ConsoleChunkReceiver::new());
+    let chunk_receiver = ConsoleChunkReceiver::new();
 
-    let mut agent = TinyAgent::new(chunk_receiver)?;
+    let mut agent = TinyAgent::new()?;
 
-    agent.chat("openai", "who are you?".into())?;
+    agent.chat(
+        "openai",
+        |chunk| {
+            chunk_receiver.recv(chunk)?;
+
+            Ok(())
+        },
+        "who are you?".into(),
+    )?;
 
     Ok(())
 }

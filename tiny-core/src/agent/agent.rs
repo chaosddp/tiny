@@ -1,4 +1,10 @@
-use std::{fs::File, io::Read, vec};
+use std::{
+    fs::File,
+    io::Read,
+    sync::mpsc::{self, Sender},
+    thread::{self, JoinHandle},
+    vec,
+};
 
 use mlua::prelude::*;
 
@@ -6,8 +12,13 @@ use crate::{
     agent::bridges::chat_client::LuaChatClient,
     core::{
         TinyResult,
-        agent::{ChatClient, ChatOptions, ChunkReceiver},
-        chat::messages::{ChatMessage, UserMessage},
+        agent::ChatOptions,
+        chat::{
+            self,
+            chunk::Chunk,
+            messages::{ChatMessage, UserMessage},
+        },
+        error::Error as TinyError,
     },
     lua::register_all,
 };
@@ -17,12 +28,10 @@ pub struct TinyAgent {
     lua: Lua,
 
     messages: Vec<ChatMessage>,
-
-    chunk_receiver: Box<dyn ChunkReceiver>,
 }
 
 impl TinyAgent {
-    pub fn new(chunk_receiver: Box<dyn ChunkReceiver>) -> TinyResult<Self> {
+    pub fn new() -> TinyResult<Self> {
         let lua = Lua::new();
 
         let globals = lua.globals();
@@ -73,11 +82,18 @@ impl TinyAgent {
         Ok(Self {
             lua,
             messages: vec![ChatMessage::System("You are a helpfule assistant".into())],
-            chunk_receiver,
         })
     }
 
-    pub fn chat(&mut self, client: &str, message: UserMessage) -> TinyResult<()> {
+    pub fn chat<F>(
+        &mut self,
+        client: &str,
+        chat_chunk_cb: F,
+        message: UserMessage,
+    ) -> TinyResult<()>
+    where
+        F: Fn(Chunk) -> TinyResult<()>,
+    {
         let globals = self.lua.globals();
 
         // TODO: cache the client
@@ -99,12 +115,9 @@ impl TinyAgent {
             reasoning_effort: None,
         };
 
-        let _msg = chat_client.chat(
-            &mut self.messages,
-            None,
-            &options,
-            Some(&self.chunk_receiver),
-        )?;
+        let msg = chat_client.chat(&mut self.messages, None, &options, Some(chat_chunk_cb))?;
+
+        self.messages.push(ChatMessage::Assistant(msg));
 
         Ok(())
     }
