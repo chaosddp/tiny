@@ -108,7 +108,6 @@ local function tool_to_openai(tool)
     }
 end
 
-
 local OpenAIChatProvider = {}
 
 OpenAIChatProvider.__index = OpenAIChatProvider
@@ -126,7 +125,7 @@ function OpenAIChatProvider:prepare_request(messages, options, tools)
         model = options.model,
         messages = table.map(messages, function (m) return message_to_openai(m) end),
         -- tools = openai_tools,
-        stream = options.stream or true,
+        stream = options.stream == nil and true or options.stream,
         max_tokens = options.max_tokens or 8000
     }
 
@@ -180,8 +179,13 @@ function OpenAIChatProvider:process_message(message_str)
             role = "assistant",
             content = full_message.choices[1].message.content,
             reasoning = full_message.choices[1].message.reasoning,
-            finish_reason = full_message.choices[1].message.finish_reason,
-            usage = full_message.usage
+            finish_reason = full_message.choices[1].finish_reason,
+            usage = full_message.usage ~= nil
+                and {
+                    prompt = full_message.usage.prompt_tokens,
+                    completion = full_message.usage.completion_tokens,
+                    total = full_message.usage.total_tokens
+                } or nil
         }
 
         return message

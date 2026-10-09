@@ -1,6 +1,7 @@
+use log::error;
 use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
-use tiny_macros::IntoLuaTable;
+use tiny_macros::{FromLuaTable, IntoLuaTable};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum ImageDetail {
@@ -19,7 +20,7 @@ pub enum FinishReason {
     Other(String),
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, FromLua, IntoLuaTable)]
+#[derive(Debug, Deserialize, Serialize, Clone, FromLuaTable, IntoLuaTable)]
 pub struct ToolCall {
     pub id: String,
     pub name: String,
@@ -27,21 +28,21 @@ pub struct ToolCall {
     pub arguments: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, FromLua, IntoLuaTable)]
+#[derive(Debug, Deserialize, Serialize, Clone, FromLuaTable, IntoLuaTable)]
 pub struct TokenUsage {
     pub prompt: usize,
     pub completion: usize,
     pub total: usize,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, FromLua, IntoLuaTable)]
+#[derive(Debug, Deserialize, Serialize, Clone, FromLuaTable, IntoLuaTable)]
 pub struct ToolMessage {
     pub id: String,
     pub name: String,
     pub content: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, FromLua, IntoLuaTable)]
+#[derive(Debug, Deserialize, Serialize, Clone, FromLuaTable, IntoLuaTable)]
 pub struct AssistantMessage {
     pub content: Option<String>,
     pub reasoning: Option<String>,
@@ -51,7 +52,7 @@ pub struct AssistantMessage {
     pub usage: Option<TokenUsage>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, FromLua, IntoLuaTable)]
+#[derive(Debug, Deserialize, Serialize, Clone, FromLuaTable, IntoLuaTable)]
 pub struct UserImageContentPart {
     pub image: String,
     pub detail: ImageDetail,
@@ -122,7 +123,11 @@ impl FromLua for FinishReason {
                     _ => FinishReason::Other(s.to_string()),
                 })
             }
-            _ => Err(mlua::Error::UserDataTypeMismatch),
+            _ => {
+                error!("Fail to convert lua value to FinishReason: {:?}", value);
+
+                Err(mlua::Error::UserDataTypeMismatch)
+            }
         }
     }
 }

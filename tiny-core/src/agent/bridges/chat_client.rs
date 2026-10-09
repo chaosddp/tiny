@@ -11,8 +11,8 @@ use crate::core::{
     error::Error,
 };
 use log::debug;
-use mlua::prelude::*;
 use mlua::FromLua;
+use mlua::prelude::*;
 use reqwest::blocking::{Client, ClientBuilder};
 
 pub struct LuaChatClient {
@@ -95,8 +95,6 @@ impl ChatClient for LuaChatClient {
         let headers = option_table.get::<LuaTable>("headers")?;
         let body = option_table.get::<String>("body")?;
 
-        println!("{}", body);
-
         let mut request_builder = self.client.post(url);
 
         for pair in headers.pairs::<String, String>() {
@@ -118,8 +116,7 @@ impl ChatClient for LuaChatClient {
                     } else {
                         let resp_text = resp.text().unwrap();
 
-                        debug!("response text: \n{0}", &resp_text);
-
+                        // let assistant_message_table:LuaTable =  self.inner.call_method("process_message", resp_text)?;
                         let assistant_message =
                             self.inner.call_method("process_message", resp_text)?;
 
@@ -167,9 +164,9 @@ impl LuaChatClient {
                             break;
                         }
 
-                        println!("{}", chunk_str);
-
-                        let chunk_table = self.inner.call_method::<LuaValue>("process_chunk", chunk_str)?;
+                        let chunk_table = self
+                            .inner
+                            .call_method::<LuaValue>("process_chunk", chunk_str)?;
                         let chunk: Chunk = Chunk::from_lua(chunk_table, &self.lua.upgrade())?;
 
                         // keep the content to construct AssistantMessage

@@ -7,3 +7,5 @@ edition = "2024"
 tiny-core = { path = "../tiny-core" }
 
 clap = { workspace = true, features = ["derive"] }
+
+env_logger = { workspace = true, features = ["auto-color", "humantime"] }
