@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand, ValueEnum};
+use tiny_core::agent::agent::TinyAgent;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ThiinkingEffort {
@@ -82,26 +83,31 @@ enum SessionCommands {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let cli = Cli::parse();
+    // let cli = Cli::parse();
 
-    match cli.command {
-        Some(Commands::Init {
-            tools: _,
-            extensions: _,
-            model: _,
-        }) => {
-            println!("init");
-        }
-        Some(Commands::Session { command }) => match command {
-            Some(SessionCommands::New) => {}
-            Some(SessionCommands::List) => {}
-            Some(SessionCommands::Show { name: _ }) => {}
-            None => {}
-        },
-        None => {
-            println!("chat with content: {:}", cli.content.join(" "));
-        }
-    }
+    // match cli.command {
+    //     Some(Commands::Init {
+    //         tools: _,
+    //         extensions: _,
+    //         model: _,
+    //     }) => {
+    //         println!("init");
+    //     }
+    //     Some(Commands::Session { command }) => match command {
+    //         Some(SessionCommands::New) => {}
+    //         Some(SessionCommands::List) => {}
+    //         Some(SessionCommands::Show { name: _ }) => {}
+    //         None => {}
+    //     },
+    //     None => {
+    //         println!("chat with content: {:}", cli.content.join(" "));
+    //     }
+    // }
+
+    // let lua = Lua::new();
+    let agent = TinyAgent::new()?;
+
+    agent.run()?;
 
     Ok(())
 }

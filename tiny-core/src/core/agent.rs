@@ -1,23 +1,33 @@
+use mlua::prelude::*;
+use serde::{Deserialize, Serialize};
+use tiny_macros::IntoLuaTable;
+
 use crate::core::{
-    TinyResult,
-    chat::{
-        chunk::Chunk,
-        messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage},
+    TinyResult, chat::{
+        chunk::Chunk, messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage}, tool::Tool,
     },
-    decision::{DecisionMessage, DecisionResponse},
 };
 
-pub struct DecisionOptions {}
+// pub struct DecisionOptions {}
 
-pub trait DecisionClient {
-    fn make(
-        &self,
-        message: &DecisionMessage,
-        options: &DecisionOptions,
-    ) -> TinyResult<DecisionResponse>;
+// pub trait DecisionClient {
+//     fn make(
+//         &self,
+//         message: &DecisionMessage,
+//         options: &DecisionOptions,
+//     ) -> TinyResult<DecisionResponse>;
+// }
+
+#[derive(Debug, Serialize, Deserialize, Clone, FromLua, IntoLuaTable)]
+pub struct ChatOptions {
+    pub model: String,
+    pub base_url: String,
+    pub api_key: String,
+    pub stream: Option<bool>,
+    pub stream_include_usage: Option<bool>,
+    pub max_tokens: Option<usize>,
+    pub reasoning_effort: Option<String>,
 }
-
-pub struct ChatOptions {}
 
 pub trait ChunkReceiver {
     fn recv(&self, chunk: Chunk) -> TinyResult<()>;
@@ -27,6 +37,7 @@ pub trait ChatClient {
     fn chat(
         &self,
         messages: &Vec<ChatMessage>,
+        tools: Option<&Vec<Tool>>,
         options: &ChatOptions,
         chunk_receiver: Option<&Box<dyn ChunkReceiver>>,
     ) -> TinyResult<AssistantMessage>;
@@ -47,6 +58,7 @@ impl BaseLoop {
         messages: &mut Vec<ChatMessage>,
         options: &ChatOptions,
         chat_client: &Box<dyn ChatClient>,
+        tools: Option<&Vec<Tool>>,
         tool_executor: Option<&Box<dyn ToolExecutor>>,
         chunk_receiver: Option<&Box<dyn ChunkReceiver>>,
         _ctx: &LoopContext,
@@ -61,7 +73,7 @@ impl BaseLoop {
             // TODO: session update
 
             // TODO: error handling: call chat fail strategy with and response, retry? cancel? patching?
-            let message = chat_client.chat(messages, options, chunk_receiver)?;
+            let message = chat_client.chat(messages, tools, options, chunk_receiver)?;
 
             // TODO: notify about chat client response
 
