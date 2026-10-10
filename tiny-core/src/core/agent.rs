@@ -11,16 +11,6 @@ use crate::core::{
     },
 };
 
-// pub struct DecisionOptions {}
-
-// pub trait DecisionClient {
-//     fn make(
-//         &self,
-//         message: &DecisionMessage,
-//         options: &DecisionOptions,
-//     ) -> TinyResult<DecisionResponse>;
-// }
-
 #[derive(Debug, Serialize, Deserialize, Clone, FromLua, IntoLuaTable)]
 pub struct ChatOptions {
     pub model: String,
@@ -31,26 +21,6 @@ pub struct ChatOptions {
     pub max_tokens: Option<usize>,
     pub reasoning_effort: Option<String>,
 }
-
-// pub trait ChunkReceiver {
-//     fn recv(&self, chunk: Chunk) -> TinyResult<()>;
-// }
-
-// pub trait ChatClient {
-//     fn chat<F>(
-//         &self,
-//         messages: &Vec<ChatMessage>,
-//         tools: Option<&Vec<Tool>>,
-//         options: &ChatOptions,
-//         chunk_receiver: Option<F>,
-//     ) -> TinyResult<AssistantMessage>
-//     where
-//         F: Fn(Chunk) -> TinyResult<()> + 'static;
-// }
-
-// pub trait ToolExecutor {
-//     fn execute(&self, name: &str, arguments: Option<&str>) -> TinyResult<String>;
-// }
 
 #[derive(Debug, Default)]
 pub struct BaseLoop();

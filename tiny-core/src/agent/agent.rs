@@ -1,24 +1,16 @@
-use std::{
-    fs::File,
-    io::Read,
-    sync::mpsc::{self, Sender},
-    thread::{self, JoinHandle},
-    vec,
-};
+use std::{fs::File, io::Read, vec};
 
 use mlua::prelude::*;
 
 use crate::{
-    agent::bridges::chat_client::LuaChatClient,
+    agent::bridges::chat::LuaChatClient,
     core::{
         TinyResult,
         agent::ChatOptions,
         chat::{
-            self,
             chunk::Chunk,
             messages::{ChatMessage, UserMessage},
         },
-        error::Error as TinyError,
     },
     lua::register_all,
 };
