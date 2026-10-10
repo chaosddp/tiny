@@ -4,6 +4,7 @@ use std::thread::{self, JoinHandle};
 use tauri::ipc::Channel;
 use tauri::{Manager, State};
 use tiny_core::agent::agent::TinyAgent;
+use tiny_core::core::chat::chunk::Chunk;
 use tiny_core::core::chat::messages::UserMessage;
 use tiny_core::core::TinyResult;
 
@@ -17,7 +18,7 @@ fn greet(name: &str) -> String {
 fn chat(
     state: State<'_, AppContext>,
     message: String,
-    on_chunk: Channel<String>,
+    on_chunk: Channel<Chunk>,
 ) -> tauri::Result<()> {
     state.chat(&message, on_chunk).expect("Fail to call chat");
 
@@ -27,7 +28,7 @@ fn chat(
 #[allow(dead_code)]
 struct AppContext {
     handler: JoinHandle<TinyResult<()>>,
-    message_sender: Sender<(UserMessage, Channel<String>)>,
+    message_sender: Sender<(UserMessage, Channel<Chunk>)>,
 }
 
 impl AppContext {
@@ -37,23 +38,15 @@ impl AppContext {
         let handler = thread::spawn(move || {
             let mut agent = TinyAgent::new()?;
 
-            for _ in 1..5 {
-                let (user_message, channel): (UserMessage, Channel<String>) =
+            loop {
+                let (user_message, channel): (UserMessage, Channel<Chunk>) =
                     message_receiver.recv()?;
 
                 agent.chat(
                     "openai",
                     |chunk| {
-                        if let Some(content) = chunk.content {
-                            channel.send(content).unwrap();
-                            // println!("{}", content);
-                        }
-
-                        if let Some(reasoning) = chunk.reasoning {
-                            channel.send(reasoning).unwrap();
-                            // println!("{}", reasoning);
-                        }
-
+                        // TODO: sometime here will cause 'send to closed channel' error
+                        channel.send(chunk).unwrap();
                         Ok(())
                     },
                     user_message,
@@ -69,7 +62,7 @@ impl AppContext {
         }
     }
 
-    pub fn chat(&self, message: &str, channel: Channel<String>) -> TinyResult<()> {
+    pub fn chat(&self, message: &str, channel: Channel<Chunk>) -> TinyResult<()> {
         self.message_sender
             .send((UserMessage::Text(message.into()), channel))?;
 

@@ -7,45 +7,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/pico.min.css" />
   <link rel="stylesheet" href="styles.css" />
-  <title>Tauri App</title>
-  <script src="js/alpinejs.min.js" defer></script>
+  <title></title>
   <script type="module" src="/main.js" defer></script>
+  <script src="js/alpinejs.min.js" defer></script>
+
 </head>
 
 
 <body>
-  <!-- <main class="container" x-data="{ statuses: ['open', 'closed', 'archived'] }">
-    <template x-for="status in statuses">
-      <div x-text="status"></div>
-    </template>
-  </main> -->
+  <main class="chat-container">
+    <div x-data class="message-list" id="message-container">
+      <template x-for="message in $store.session.messages" :key="message.id">
+        <div>
+          <div x-show="message.role == 'assistant'">
+            <p>Assistant message:</p>
+          </div>
 
-  <!-- <main class="container">
-    <h1>Welcome to Tauri</h1>
+          <div x-show="message.role == 'user'">
+            <p>User message:</p>
+          </div>
 
-    <div class="row">
-      <a href="https://tauri.app" target="_blank">
-        <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-        <img src="/assets/javascript.svg" class="logo vanilla" alt="JavaScript logo" />
-      </a>
+          <div x-show="message.role == 'assistant'" >
+            <p class="msg-content" x-text="message.reasoning"></p>
+          </div>
+          <div>
+            <p x-show="message.content && message.content.length > 0" class="msg-content" x-text="message.content"></p>
+          </div>
+        </div>
+      </template>
     </div>
-    <p>Click on the Tauri logo to learn more about the framework</p>
 
-    <form class="row" id="greet-form">
-      <input id="greet-input" placeholder="Enter a name..." />
-      <button type="submit">Greet</button>
-    </form>
-    <p id="greet-msg"></p>
-  </main> -->
-  <main class="container">
-    <p id="output"></p>
-
-    <form class="row" id="chat-form">
-      <input id="user-input" type="text" placeholder="enter message here" />
-      <button type="submit" >Send</button>
-    </form>
+    <div class="form-wrapper">
+      <form id="chat-form" class="input-bar">
+        <input id="user-input" type="text" placeholder="enter message here" />
+        <button type="submit" id="submit-btn" class="submmit-btn">Send</button>
+      </form>
+    </div>
   </main>
 </body>
 
