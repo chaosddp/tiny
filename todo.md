@@ -1,9 +1,0 @@
-- [ ] error handling
-  - [ ] the base agent loop will handle erorrs, then ask extensions about strategy, default is stop the agent, if there is not any handler 
-- [ ] tool execution sandbox
-- [ ] tool execution permission
-- [ ] tool execution confirm
-- [ ] more agent loop callbacks
-  - [ ] update/inject system prompts - with this we can support Skills
-  - [ ] callback at each loop life cycle, like start, end, error, message
-- [ ] gracefule exit

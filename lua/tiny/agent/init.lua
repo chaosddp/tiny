@@ -1,1 +1,0 @@
-local Agent = require "tiny.agent.agent"
