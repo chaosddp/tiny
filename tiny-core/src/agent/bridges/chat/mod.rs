@@ -15,7 +15,7 @@ use mlua::FromLua;
 use mlua::prelude::*;
 use reqwest::blocking::{Client, ClientBuilder};
 
-/// used to implement basic chatting interface, it will ask binded lua table to preapre request options, and process server request.
+/// used to implement basic chatting interface, it will ask binded lua table to preapre request options, and process server response.
 pub struct LuaChatClient {
     lua: WeakLua,
     inner: LuaTable,

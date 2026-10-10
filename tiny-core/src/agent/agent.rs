@@ -3,10 +3,10 @@ use std::{fs::File, io::Read, vec};
 use mlua::prelude::*;
 
 use crate::{
-    agent::bridges::chat::LuaChatClient,
+    agent::bridges::{chat::LuaChatClient, tools::executor::LuaToolExecutor},
     core::{
         TinyResult,
-        agent::ChatOptions,
+        agent::{ChatOptions, LoopContext, base_loop},
         chat::{
             chunk::Chunk,
             messages::{ChatMessage, UserMessage},
@@ -20,12 +20,13 @@ pub struct TinyAgent {
     lua: Lua,
 
     messages: Vec<ChatMessage>,
+    tool_executor: LuaToolExecutor,
+    context: LoopContext,
 }
 
 impl TinyAgent {
     pub fn new() -> TinyResult<Self> {
         let lua = Lua::new();
-
         let globals = lua.globals();
 
         #[cfg(debug_assertions)]
@@ -71,9 +72,14 @@ impl TinyAgent {
 
         lua.load(main_script_str).exec()?;
 
+        let context = LoopContext {};
+        let tool_executor = LuaToolExecutor::new();
+
         Ok(Self {
             lua,
             messages: vec![ChatMessage::System("You are a helpfule assistant".into())],
+            context,
+            tool_executor,
         })
     }
 
@@ -107,9 +113,20 @@ impl TinyAgent {
             reasoning_effort: None,
         };
 
-        let msg = chat_client.chat(&mut self.messages, None, &options, Some(chat_chunk_cb))?;
 
-        self.messages.push(ChatMessage::Assistant(msg));
+        let tools = vec![];
+
+        base_loop(
+            &mut self.messages,
+            &options,
+            |messages, tools, options, receiver| {
+                chat_client.chat(messages, Some(tools), options, Some(receiver))
+            },
+            &tools,
+            |tool, param| Ok(self.tool_executor.execute(&tool, param)?),
+            chat_chunk_cb,
+            &self.context,
+        )?;
 
         Ok(())
     }
