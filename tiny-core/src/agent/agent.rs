@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read, vec};
+use std::{fs::File, io::Read, path::Path, vec};
 
 use log::debug;
 use mlua::prelude::*;
@@ -89,7 +89,15 @@ impl TinyAgent {
         let mut config_str = String::new();
 
         {
-            let mut file = File::open(".tiny.json")?;
+            let mut json_path = Path::new(".tiny.json").to_path_buf();
+
+            #[cfg(debug_assertions)]
+            {
+                json_path = exec_folder.join(".tiny.json");
+            }
+
+            let mut file =
+                File::open(json_path).expect("Fail to load .tiny.json in current folder.");
 
             file.read_to_string(&mut config_str)?;
         }

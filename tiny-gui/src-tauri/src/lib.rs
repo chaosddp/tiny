@@ -1,4 +1,4 @@
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::{self, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 
 use tauri::ipc::Channel;
@@ -37,7 +37,7 @@ impl AppContext {
         let (message_sender, message_receiver) = mpsc::channel();
 
         let handler = thread::spawn(move || {
-            let mut agent = TinyAgent::new()?;
+            let mut agent = TinyAgent::new().expect("Fail to create TinyAgent.");
 
             let options = ChatOptions {
                 model: "qwen3.5".into(),
@@ -72,7 +72,8 @@ impl AppContext {
 
     pub fn chat(&self, message: &str, channel: Channel<Chunk>) -> TinyResult<()> {
         self.message_sender
-            .send((UserMessage::Text(message.into()), channel))?;
+            .send((UserMessage::Text(message.into()), channel))
+            .expect("Fail to send message, may be the background thread failed to start.");
 
         Ok(())
     }

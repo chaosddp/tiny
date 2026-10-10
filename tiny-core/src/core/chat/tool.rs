@@ -1,4 +1,3 @@
-use mlua::IntoLua;
 use serde::{Deserialize, Serialize};
 use tiny_macros::{FromLuaTable, IntoLuaTable};
 
