@@ -1,9 +1,15 @@
 use std::{fs::File, io::Read, vec};
 
+use log::debug;
 use mlua::prelude::*;
 
 use crate::{
-    agent::bridges::{chat::LuaChatClient, tools::executor::LuaToolExecutor},
+    agent::{
+        bridges::{
+            chat::LuaChatClient, extensions::load_extension, tools::executor::LuaToolExecutor,
+        },
+        config::Configurations,
+    },
     core::{
         TinyResult,
         agent::{ChatOptions, LoopContext, base_loop},
@@ -18,6 +24,7 @@ use crate::{
 #[allow(dead_code)]
 pub struct TinyAgent {
     lua: Lua,
+    configs: Configurations,
 
     messages: Vec<ChatMessage>,
 
@@ -31,27 +38,26 @@ impl TinyAgent {
         let lua = Lua::new();
         let globals = lua.globals();
 
+        let exec_path = std::env::current_exe().unwrap();
+        let mut exec_folder = exec_path.parent().unwrap();
+
         #[cfg(debug_assertions)]
         {
-            // setup search path under debug mode, so we do not need to copy lua files to target folder
-            let cur_path = std::env::current_exe()
-                .unwrap()
-                .parent() // debug
-                .unwrap()
+            exec_folder = exec_folder // debug
                 .parent() // target
                 .unwrap()
                 .parent() // workspace
-                .unwrap()
-                .to_string_lossy()
-                .to_string();
-
-            // update lua package search path
-            let package_table = globals.get::<LuaTable>("package")?;
-            package_table.set(
-                "path",
-                format!("{0}/tiny/lua/?.lua;{0}/tiny/lua/?/init.lua", cur_path),
-            )?;
+                .unwrap();
         }
+        // update lua package search path
+        let package_table = globals.get::<LuaTable>("package")?;
+        package_table.set(
+            "path",
+            format!(
+                "{0}/tiny/core/?.lua;{0}/tiny/core/?/init.lua;{0}/tiny/extensions/?.lua;{0}/tiny/extensions/?/init.lua",
+                exec_folder.to_string_lossy()
+            ),
+        )?;
 
         register_all(&lua)?;
 
@@ -68,16 +74,7 @@ impl TinyAgent {
         let mut main_script_str = String::new();
 
         {
-            let exec_path = std::env::current_exe().unwrap();
-            let mut exec_folder = exec_path.parent().unwrap();
-
-            #[cfg(debug_assertions)]
-            {
-                // to the workspace root, to avoid copy lua files to target folder
-                exec_folder = exec_folder.parent().unwrap().parent().unwrap();
-            }
-
-            let main_lua_path = exec_folder.join("tiny").join("lua").join("main.lua");
+            let main_lua_path = exec_folder.join("tiny").join("core").join("init.lua");
 
             let mut file = File::open(main_lua_path)?;
 
@@ -85,6 +82,30 @@ impl TinyAgent {
         }
 
         lua.load(main_script_str).exec()?;
+
+        // load configurations (.tiny.json)
+        let mut config_str = String::new();
+
+        {
+            let mut file = File::open(".tiny.json")?;
+
+            file.read_to_string(&mut config_str)?;
+        }
+
+        let configs: Configurations = serde_json::from_str(&config_str)?;
+
+        // load extensions
+        for ext_name in &configs.extensions {
+            let ext_path = exec_folder.join("tiny").join("extensions").join(ext_name);
+
+            debug!("loading extension from: {:?}", ext_path);
+
+            if ext_path.exists() && ext_path.is_dir() {
+                debug!("loaded extension: {}", ext_name);
+
+                load_extension(&lua, ext_path)?;
+            }
+        }
 
         let context = LoopContext {};
         let tool_executor = LuaToolExecutor::new();
@@ -96,6 +117,7 @@ impl TinyAgent {
             context,
             tool_executor,
             chat_client,
+            configs,
         })
     }
 

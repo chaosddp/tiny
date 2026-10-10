@@ -13,7 +13,7 @@ pub enum Error {
     #[error("Lua reference droped.")]
     InvalidLuaReference,
     #[error("Invalid json: {0}")]
-    InvalidJson(String),
+    JsonError(serde_json::Error),
     #[error("runtime error: {0}")]
     RuntimeError(String),
 }
@@ -45,5 +45,11 @@ impl From<mpsc::RecvError> for Error {
 impl From<mpsc::RecvTimeoutError> for Error {
     fn from(value: mpsc::RecvTimeoutError) -> Self {
         Error::RuntimeError(value.to_string())
+    }
+}
+
+impl From<serde_json::error::Error> for Error {
+    fn from(value: serde_json::error::Error) -> Self {
+        Error::JsonError(value)
     }
 }
