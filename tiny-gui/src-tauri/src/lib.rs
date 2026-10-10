@@ -4,6 +4,7 @@ use std::thread::{self, JoinHandle};
 use tauri::ipc::Channel;
 use tauri::{Manager, State};
 use tiny_core::agent::agent::TinyAgent;
+use tiny_core::core::agent::ChatOptions;
 use tiny_core::core::chat::chunk::Chunk;
 use tiny_core::core::chat::messages::UserMessage;
 use tiny_core::core::TinyResult;
@@ -38,22 +39,29 @@ impl AppContext {
         let handler = thread::spawn(move || {
             let mut agent = TinyAgent::new()?;
 
+            let options = ChatOptions {
+                model: "qwen3.5".into(),
+                base_url: "http://localhost:11434/v1".into(),
+                api_key: "ollama".into(),
+                stream: Some(true),
+                stream_include_usage: None,
+                max_tokens: Some(64000),
+                reasoning_effort: None,
+            };
+
             loop {
                 let (user_message, channel): (UserMessage, Channel<Chunk>) =
                     message_receiver.recv()?;
 
-                agent.chat(
-                    "openai",
-                    |chunk| {
-                        // TODO: sometime here will cause 'send to closed channel' error
-                        channel.send(chunk).unwrap();
-                        Ok(())
-                    },
-                    user_message,
-                )?;
+                agent.chat("openai", user_message, &options, |chunk| {
+                    // TODO: sometime here will cause 'send to closed channel' error
+                    channel.send(chunk).unwrap();
+                    Ok(())
+                })?;
             }
 
-            Ok(())
+            // Ok(())
+            // unreachable!()
         });
 
         Self {

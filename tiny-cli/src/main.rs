@@ -1,7 +1,7 @@
 use std::{cell::RefCell, io::Write, ops::Deref};
 
 use clap::{Parser, Subcommand, ValueEnum};
-use tiny_core::agent::agent::TinyAgent;
+use tiny_core::{agent::agent::TinyAgent, core::agent::ChatOptions};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ThiinkingEffort {
@@ -171,40 +171,46 @@ impl ConsoleChunkReceiver {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    // let cli = Cli::parse();
+    let cli = Cli::parse();
 
-    // match cli.command {
-    //     Some(Commands::Init {
-    //         tools: _,
-    //         extensions: _,
-    //         model: _,
-    //     }) => {
-    //         println!("init");
-    //     }
-    //     Some(Commands::Session { command }) => match command {
-    //         Some(SessionCommands::New) => {}
-    //         Some(SessionCommands::List) => {}
-    //         Some(SessionCommands::Show { name: _ }) => {}
-    //         None => {}
-    //     },
-    //     None => {
-    //         println!("chat with content: {:}", cli.content.join(" "));
-    //     }
-    // }
+    match cli.command {
+        Some(Commands::Init {
+            tools: _,
+            extensions: _,
+            model: _,
+        }) => {
+            println!("init");
+        }
+        Some(Commands::Session { command }) => match command {
+            Some(SessionCommands::New) => {}
+            Some(SessionCommands::List) => {}
+            Some(SessionCommands::Show { name: _ }) => {}
+            None => {}
+        },
+        None => {
+            println!("chat with content: {:}", cli.content.join(" "));
+        }
+    }
+
+    let options = ChatOptions {
+        model: "qwen3.5".into(),
+        base_url: "http://localhost:11434/v1".into(),
+        api_key: "ollama".into(),
+        stream: Some(true),
+        stream_include_usage: None,
+        max_tokens: Some(64000),
+        reasoning_effort: None,
+    };
 
     let chunk_receiver = ConsoleChunkReceiver::new();
 
     let mut agent = TinyAgent::new()?;
 
-    agent.chat(
-        "openai",
-        |chunk| {
-            chunk_receiver.recv(chunk)?;
+    agent.chat("openai", "who are you?".into(), &options, |chunk| {
+        chunk_receiver.recv(chunk)?;
 
-            Ok(())
-        },
-        "who are you?".into(),
-    )?;
+        Ok(())
+    })?;
 
     Ok(())
 }

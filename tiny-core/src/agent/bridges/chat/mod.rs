@@ -16,32 +16,26 @@ use mlua::prelude::*;
 use reqwest::blocking::{Client, ClientBuilder};
 
 /// used to implement basic chatting interface, it will ask binded lua table to preapre request options, and process server response.
+///
+/// it will bind to a lua table at runtime according to client type
+///
+/// It requires the table contains following methods
+/// 1. prepare_request(self, messages, options)->{url=..., body=..., headers=...} - construct http request options that contains body, headers
+/// 2. process_chunk(self, chunk_str)->{chunk_table} - parse the each SSE line into Chunk message, called if stream enabled
+/// 3. process_message(self, message_str)->{message_table} - parse the LLM response into assistant message, called if stream disabled
+/// 4. http_failed(self, status_code, response)->{strategy} - called on http request failed, and provide different strategy
+/// 5. parse_failed(self, response, error)->{strategy} -> called on chunk/message processing failed, and provide different strategy
 pub struct LuaChatClient {
     lua: WeakLua,
-    inner: LuaTable,
     client: Client,
 }
 
 impl LuaChatClient {
-    /// Create a new LuaChatClient, and bind it to a lua table.
-    ///
-    /// It requires the table contains following methods
-    /// 1. prepare_request(self, messages, options)->{url=..., body=..., headers=...} - construct http request options that contains body, headers
-    /// 2. process_chunk(self, chunk_str)->{chunk_table} - parse the each SSE line into Chunk message, called if stream enabled
-    /// 3. process_message(self, message_str)->{message_table} - parse the LLM response into assistant message, called if stream disabled
-    /// 4. http_failed(self, status_code, response)->{strategy} - called on http request failed, and provide different strategy
-    /// 5. parse_failed(self, response, error)->{strategy} -> called on chunk/message processing failed, and provide different strategy
-    pub fn from_lua_table(lua: &Lua, table: LuaTable) -> LuaResult<Self> {
-        for method_name in ["prepare_request", "process_chunk", "process_message"] {
-            // check if the method exist
-            let _method: LuaFunction = table.get(method_name)?;
-        }
-
+    pub fn new(lua: &Lua) -> LuaResult<Self> {
         let client = ClientBuilder::new().build().unwrap();
 
         Ok(Self {
             lua: lua.weak(),
-            inner: table,
             client: client,
         })
     }
@@ -50,6 +44,7 @@ impl LuaChatClient {
 impl LuaChatClient {
     pub fn chat<F>(
         &self,
+        client: &str,
         messages: &Vec<ChatMessage>,
         tools: Option<&Vec<Tool>>,
         options: &ChatOptions,
@@ -59,6 +54,9 @@ impl LuaChatClient {
         F: Fn(Chunk) -> TinyResult<()>,
     {
         let lua = self.lua.try_upgrade().ok_or(Error::InvalidLuaReference)?;
+        let globals = lua.globals();
+        let chat_client_table = globals.get_path::<LuaTable>("tiny.chat_clients")?;
+        let inner = chat_client_table.get::<LuaTable>(client)?;
 
         let lua_messages = lua.create_table()?;
 
@@ -80,7 +78,7 @@ impl LuaChatClient {
             }
         };
         // ask provider for request things
-        let (success, request_options) = self.inner.call_method::<(bool, LuaValue)>(
+        let (success, request_options) = inner.call_method::<(bool, LuaValue)>(
             "prepare_request",
             (lua_messages, lua_chat_options, lua_tools),
         )?;
@@ -116,13 +114,12 @@ impl LuaChatClient {
                     debug!("Current response content type: {:?}", content_type);
 
                     if content_type == "text/event-stream" {
-                        self.process_sse_chunks(chunk_receiver, resp)?
+                        self.process_sse_chunks(inner, chunk_receiver, resp)?
                     } else {
                         let resp_text = resp.text().unwrap();
 
                         // let assistant_message_table:LuaTable =  self.inner.call_method("process_message", resp_text)?;
-                        let assistant_message =
-                            self.inner.call_method("process_message", resp_text)?;
+                        let assistant_message = inner.call_method("process_message", resp_text)?;
 
                         assistant_message
                     }
@@ -144,11 +141,10 @@ impl LuaChatClient {
 
         Ok(message)
     }
-}
 
-impl LuaChatClient {
     fn process_sse_chunks<F>(
         &self,
+        inner: LuaTable,
         chunk_receiver: Option<F>,
         resp: reqwest::blocking::Response,
     ) -> TinyResult<AssistantMessage>
@@ -171,9 +167,8 @@ impl LuaChatClient {
                             break;
                         }
 
-                        let chunk_table = self
-                            .inner
-                            .call_method::<LuaValue>("process_chunk", chunk_str)?;
+                        let chunk_table =
+                            inner.call_method::<LuaValue>("process_chunk", chunk_str)?;
                         let chunk: Chunk = Chunk::from_lua(chunk_table, &self.lua.upgrade())?;
 
                         // keep the content to construct AssistantMessage

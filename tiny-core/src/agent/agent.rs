@@ -20,6 +20,8 @@ pub struct TinyAgent {
     lua: Lua,
 
     messages: Vec<ChatMessage>,
+
+    chat_client: LuaChatClient,
     tool_executor: LuaToolExecutor,
     context: LoopContext,
 }
@@ -32,13 +34,14 @@ impl TinyAgent {
         #[cfg(debug_assertions)]
         {
             // setup search path under debug mode, so we do not need to copy lua files to target folder
-            let cur_path = std::env::current_dir()
-                .map_err(|e| {
-                    mlua::Error::RuntimeError(format!(
-                        "Fail to get executable path: {}",
-                        e.to_string()
-                    ))
-                })?
+            let cur_path = std::env::current_exe()
+                .unwrap()
+                .parent() // debug
+                .unwrap()
+                .parent() // target
+                .unwrap()
+                .parent() // workspace
+                .unwrap()
                 .to_string_lossy()
                 .to_string();
 
@@ -46,7 +49,7 @@ impl TinyAgent {
             let package_table = globals.get::<LuaTable>("package")?;
             package_table.set(
                 "path",
-                format!("{0}/lua/?.lua;{0}/lua/?/init.lua", cur_path),
+                format!("{0}/tiny/lua/?.lua;{0}/tiny/lua/?/init.lua", cur_path),
             )?;
         }
 
@@ -65,7 +68,18 @@ impl TinyAgent {
         let mut main_script_str = String::new();
 
         {
-            let mut file = File::open("lua/main.lua")?;
+            let exec_path = std::env::current_exe().unwrap();
+            let mut exec_folder = exec_path.parent().unwrap();
+
+            #[cfg(debug_assertions)]
+            {
+                // to the workspace root, to avoid copy lua files to target folder
+                exec_folder = exec_folder.parent().unwrap().parent().unwrap();
+            }
+
+            let main_lua_path = exec_folder.join("tiny").join("lua").join("main.lua");
+
+            let mut file = File::open(main_lua_path)?;
 
             file.read_to_string(&mut main_script_str)?;
         }
@@ -74,45 +88,28 @@ impl TinyAgent {
 
         let context = LoopContext {};
         let tool_executor = LuaToolExecutor::new();
+        let chat_client = LuaChatClient::new(&lua)?;
 
         Ok(Self {
             lua,
             messages: vec![ChatMessage::System("You are a helpfule assistant".into())],
             context,
             tool_executor,
+            chat_client,
         })
     }
 
     pub fn chat<F>(
         &mut self,
         client: &str,
-        chat_chunk_cb: F,
         message: UserMessage,
+        options: &ChatOptions,
+        chat_chunk_cb: F,
     ) -> TinyResult<()>
     where
         F: Fn(Chunk) -> TinyResult<()>,
     {
-        let globals = self.lua.globals();
-
-        // TODO: cache the client
-        let chat_client_provider_path = format!("tiny.chat_clients.{}", client);
-        let chat_client_provider: LuaTable =
-            globals.get_path(chat_client_provider_path.as_ref())?;
-
-        let chat_client = LuaChatClient::from_lua_table(&self.lua, chat_client_provider)?;
-
         self.messages.push(ChatMessage::User(message));
-
-        let options = ChatOptions {
-            model: "qwen3.5".into(),
-            base_url: "http://localhost:11434/v1".into(),
-            api_key: "ollama".into(),
-            stream: Some(true),
-            stream_include_usage: None,
-            max_tokens: Some(64000),
-            reasoning_effort: None,
-        };
-
 
         let tools = vec![];
 
@@ -120,7 +117,8 @@ impl TinyAgent {
             &mut self.messages,
             &options,
             |messages, tools, options, receiver| {
-                chat_client.chat(messages, Some(tools), options, Some(receiver))
+                self.chat_client
+                    .chat(client, messages, Some(tools), options, Some(receiver))
             },
             &tools,
             |tool, param| Ok(self.tool_executor.execute(&tool, param)?),
