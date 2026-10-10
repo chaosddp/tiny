@@ -4,24 +4,51 @@ use glob::glob;
 use log::debug;
 use mlua::prelude::*;
 
+use crate::core::chat::tool::Tool;
+
 pub struct LuaToolExecutor {
     lua: Lua,
     tool_functions: HashMap<String, LuaFunction>,
 }
 
 impl LuaToolExecutor {
-    pub fn new() -> Self {
+    pub fn new(tools_root: &str) -> LuaResult<Self> {
         let lua = Lua::new();
+        let globals = lua.globals();
+        let package: LuaTable = globals.get("package")?;
 
-        Self {
+        package.set("path", format!("{0}/?.lua;{0}/?/init.lua", tools_root))?;
+
+        crate::lua::register_all(&lua)?;
+
+        Ok(Self {
             lua,
             tool_functions: HashMap::new(),
-        }
+        })
     }
 
-    pub fn load(&mut self, path: PathBuf) -> LuaResult<()> {
+    pub fn load(&mut self, path: PathBuf) -> LuaResult<Vec<Tool>> {
         debug!("Loading tools from: {:?}", path);
 
+        let mut tool_definitions = vec![];
+
+        // try to load directly
+        let info_file = path.join("tool.json");
+        let tool_file = path.join("tool.lua");
+
+        if info_file.exists() && tool_file.exists() {
+            let tool_name = path.file_name().unwrap().to_str().unwrap();
+
+            if let Ok(tool) = self.load_tool(tool_name, tool_file, info_file) {
+                debug!("Loaded tool: {}", tool_name);
+
+                tool_definitions.push(tool);
+            } else {
+                debug!("Failed to load tool: {}", tool_name);
+            }
+        }
+
+        // load collections
         if let Ok(entrys) = glob(&format!("{}/*", path.to_str().unwrap())) {
             for entry in entrys {
                 match entry {
@@ -39,17 +66,13 @@ impl LuaToolExecutor {
                             {
                                 let tool_name = p.file_name().unwrap().to_str().unwrap();
 
-                                let mut script_buf = String::new();
+                                if let Ok(tool) = self.load_tool(tool_name, tool_file, info_file) {
+                                    debug!("Loaded tool: {}", tool_name);
 
-                                {
-                                    let mut fp = File::open(tool_file)?;
-
-                                    fp.read_to_string(&mut script_buf)?;
+                                    tool_definitions.push(tool);
+                                } else {
+                                    debug!("Failed to load tool: {}", tool_name);
                                 }
-
-                                let tool_func: LuaFunction = self.lua.load(script_buf).eval()?;
-
-                                self.tool_functions.insert(tool_name.to_string(), tool_func);
                             }
                         }
                     }
@@ -58,7 +81,7 @@ impl LuaToolExecutor {
             }
         }
 
-        Ok(())
+        Ok(tool_definitions)
     }
 
     pub fn execute(&self, name: &str, parameters: Option<String>) -> LuaResult<String> {
@@ -69,25 +92,27 @@ impl LuaToolExecutor {
         }
     }
 
-    fn init(&self) -> LuaResult<()> {
-        // register our utils
-        crate::lua::register_all(&self.lua)?;
+    fn load_tool(
+        &mut self,
+        tool_name: &str,
+        tool_file: PathBuf,
+        info_file: PathBuf,
+    ) -> LuaResult<Tool> {
+        let mut script_buf = String::new();
 
-        Ok(())
-    }
+        {
+            let mut fp = File::open(tool_file)?;
 
-    #[allow(dead_code)]
-    fn add_package_path(&self, dir: PathBuf) -> LuaResult<()> {
-        let globals = self.lua.globals();
+            fp.read_to_string(&mut script_buf)?;
+        }
 
-        let package: LuaTable = globals.get("package")?;
-        let path: LuaString = package.get("path")?;
+        let tool_func: LuaFunction = self.lua.load(script_buf).eval()?;
 
-        package.set(
-            "path",
-            path.to_str()?.to_string() + ";" + dir.to_str().unwrap(),
-        )?;
+        self.tool_functions.insert(tool_name.to_string(), tool_func);
 
-        Ok(())
+        let info = serde_json::from_reader(File::open(info_file)?)
+            .map_err(|e| mlua::Error::DeserializeError(e.to_string()))?;
+
+        Ok(info)
     }
 }

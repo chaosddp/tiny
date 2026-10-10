@@ -124,7 +124,7 @@ function OpenAIChatProvider:prepare_request(messages, options, tools)
     local body = {
         model = options.model,
         messages = table.map(messages, function (m) return message_to_openai(m) end),
-        -- tools = openai_tools,
+        tools = openai_tools,
         stream = options.stream == nil and true or options.stream,
         max_tokens = options.max_tokens or 8000
     }

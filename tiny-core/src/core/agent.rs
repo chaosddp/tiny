@@ -1,5 +1,3 @@
-use std::process::Output;
-
 use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 use tiny_macros::IntoLuaTable;
@@ -39,12 +37,7 @@ pub fn base_loop<CC, CR, TE>(
     _ctx: &LoopContext,
 ) -> TinyResult<()>
 where
-    CC: Fn(
-        &Vec<ChatMessage>,
-        &Vec<Tool>,
-        &ChatOptions,
-        &CR,
-    ) -> TinyResult<AssistantMessage>,
+    CC: Fn(&Vec<ChatMessage>, &Vec<Tool>, &ChatOptions, &CR) -> TinyResult<AssistantMessage>,
     CR: Fn(Chunk) -> TinyResult<()>,
     TE: Fn(String, Option<String>) -> TinyResult<String>,
 {

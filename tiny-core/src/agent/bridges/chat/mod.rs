@@ -97,6 +97,8 @@ impl LuaChatClient {
         let headers = option_table.get::<LuaTable>("headers")?;
         let body = option_table.get::<String>("body")?;
 
+        debug!("request body: {}", body);
+
         let mut request_builder = self.client.post(url);
 
         for pair in headers.pairs::<String, String>() {

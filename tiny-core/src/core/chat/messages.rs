@@ -286,6 +286,12 @@ impl Into<UserMessage> for &str {
     }
 }
 
+impl Into<UserMessage> for String {
+    fn into(self) -> UserMessage {
+        UserMessage::Text(self)
+    }
+}
+
 ///
 /// generate following lua table
 ///

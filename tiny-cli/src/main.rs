@@ -188,29 +188,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             None => {}
         },
         None => {
-            println!("chat with content: {:}", cli.content.join(" "));
+            let user_message = cli.content.join(" ");
+
+            let options = ChatOptions {
+                model: "qwen3.5".into(),
+                base_url: "http://localhost:11434/v1".into(),
+                api_key: "ollama".into(),
+                stream: Some(true),
+                stream_include_usage: None,
+                max_tokens: Some(64000),
+                reasoning_effort: None,
+            };
+
+            let chunk_receiver = ConsoleChunkReceiver::new();
+
+            let mut agent = TinyAgent::new()?;
+
+            agent.chat("openai", user_message.into(), &options, |chunk| {
+                chunk_receiver.recv(chunk)?;
+
+                Ok(())
+            })?;
         }
     }
-
-    let options = ChatOptions {
-        model: "qwen3.5".into(),
-        base_url: "http://localhost:11434/v1".into(),
-        api_key: "ollama".into(),
-        stream: Some(true),
-        stream_include_usage: None,
-        max_tokens: Some(64000),
-        reasoning_effort: None,
-    };
-
-    let chunk_receiver = ConsoleChunkReceiver::new();
-
-    let mut agent = TinyAgent::new()?;
-
-    agent.chat("openai", "who are you?".into(), &options, |chunk| {
-        chunk_receiver.recv(chunk)?;
-
-        Ok(())
-    })?;
 
     Ok(())
 }

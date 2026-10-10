@@ -16,6 +16,7 @@ use crate::{
         chat::{
             chunk::Chunk,
             messages::{ChatMessage, UserMessage},
+            tool::Tool,
         },
     },
     lua::register_all,
@@ -31,6 +32,7 @@ pub struct TinyAgent {
     chat_client: LuaChatClient,
     tool_executor: LuaToolExecutor,
     context: LoopContext,
+    tools: Vec<Tool>,
 }
 
 impl TinyAgent {
@@ -54,7 +56,7 @@ impl TinyAgent {
         package_table.set(
             "path",
             format!(
-                "{0}/tiny/core/?.lua;{0}/tiny/core/?/init.lua;{0}/tiny/extensions/?.lua;{0}/tiny/extensions/?/init.lua",
+                "{0}/tiny/core/?.lua;{0}/tiny/core/?/init.lua;{0}/extensions/?.lua;{0}/extensions/?/init.lua",
                 exec_folder.to_string_lossy()
             ),
         )?;
@@ -96,7 +98,7 @@ impl TinyAgent {
 
         // load extensions
         for ext_name in &configs.extensions {
-            let ext_path = exec_folder.join("tiny").join("extensions").join(ext_name);
+            let ext_path = exec_folder.join("extensions").join(ext_name);
 
             debug!("loading extension from: {:?}", ext_path);
 
@@ -107,8 +109,23 @@ impl TinyAgent {
             }
         }
 
-        let context = LoopContext {};
-        let tool_executor = LuaToolExecutor::new();
+        let mut tool_executor = LuaToolExecutor::new(exec_folder.join("tools").to_str().unwrap())?;
+
+        // load tool functions
+        let mut tools = vec![];
+        for tool in &configs.tools {
+            let tool_path = exec_folder.join("tools").join(tool);
+
+            debug!("loading tool from: {:?}", tool_path);
+
+            if tool_path.exists() {
+                if let Ok(inner_tools) = tool_executor.load(tool_path) {
+                    tools.extend_from_slice(&inner_tools);
+                }
+            }
+        }
+
+        let context: LoopContext = LoopContext {};
         let chat_client = LuaChatClient::new(&lua)?;
 
         Ok(Self {
@@ -118,6 +135,7 @@ impl TinyAgent {
             tool_executor,
             chat_client,
             configs,
+            tools,
         })
     }
 
@@ -133,8 +151,6 @@ impl TinyAgent {
     {
         self.messages.push(ChatMessage::User(message));
 
-        let tools = vec![];
-
         base_loop(
             &mut self.messages,
             &options,
@@ -142,7 +158,7 @@ impl TinyAgent {
                 self.chat_client
                     .chat(client, messages, Some(tools), options, Some(receiver))
             },
-            &tools,
+            &self.tools,
             |tool, param| Ok(self.tool_executor.execute(&tool, param)?),
             chat_chunk_cb,
             &self.context,
