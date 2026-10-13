@@ -6,13 +6,14 @@ use mlua::prelude::*;
 use crate::{
     agent::{
         bridges::{
-            chat::LuaChatClient, extensions::load_extension, tools::executor::LuaToolExecutor,
+            chat::LuaChatClient, extensions::load_extension, handlers::LuaEventHandlers,
+            tools::executor::LuaToolExecutor,
         },
         config::Configurations,
     },
     core::{
         TinyResult,
-        agent::{ChatOptions, LoopContext, base_loop},
+        agent::{ChatOptions, EventHandler, base_loop},
         chat::{
             chunk::Chunk,
             messages::{ChatMessage, UserMessage},
@@ -31,7 +32,7 @@ pub struct TinyAgent {
 
     chat_client: LuaChatClient,
     tool_executor: LuaToolExecutor,
-    context: LoopContext,
+    handlers: Box<dyn EventHandler>,
     tools: Vec<Tool>,
 }
 
@@ -70,6 +71,11 @@ impl TinyAgent {
         let chat_clients_table = lua.create_table()?;
 
         tiny_table.set("chat_clients", chat_clients_table)?;
+
+        // event handler
+        let event_handler_table = lua.create_table()?;
+
+        tiny_table.set("event_handlers", event_handler_table)?;
 
         globals.set("tiny", tiny_table)?;
 
@@ -133,13 +139,16 @@ impl TinyAgent {
             }
         }
 
-        let context: LoopContext = LoopContext {};
+        let handlers: Box<dyn EventHandler> = Box::new(LuaEventHandlers::new(
+            &lua,
+            globals.get_path::<LuaTable>("tiny.event_handlers")?,
+        )?);
         let chat_client = LuaChatClient::new(&lua)?;
 
         Ok(Self {
             lua,
             messages: vec![ChatMessage::System("You are a helpfule assistant".into())],
-            context,
+            handlers,
             tool_executor,
             chat_client,
             configs,
@@ -169,7 +178,7 @@ impl TinyAgent {
             &self.tools,
             |tool, param| Ok(self.tool_executor.execute(&tool, param)?),
             chat_chunk_cb,
-            &self.context,
+            &self.handlers,
         )?;
 
         Ok(())

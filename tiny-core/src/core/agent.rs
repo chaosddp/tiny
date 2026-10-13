@@ -6,7 +6,9 @@ use crate::core::{
     TinyResult,
     chat::{
         chunk::Chunk,
-        messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage},
+        messages::{
+            AssistantMessage, ChatMessage, FinishReason, ToolCall, ToolMessage, UserMessage,
+        },
         tool::Tool,
     },
 };
@@ -22,10 +24,31 @@ pub struct ChatOptions {
     pub reasoning_effort: Option<String>,
 }
 
-// impl<Args, F, A> Fn<Args> for Box<F, A>
-//   where Args: std::marker::Tuple, F: Fn<Args>, A: Allocator, F: ?Sized;
+pub trait EventHandler {
+    fn loop_start(&self) -> TinyResult<()> {
+        Ok(())
+    }
 
-pub struct LoopContext {}
+    fn loop_end(&self) -> TinyResult<()> {
+        Ok(())
+    }
+
+    fn loop_round(&self, n: u32) -> TinyResult<()> {
+        Ok(())
+    }
+
+    fn message(&self, message: &ChatMessage) -> TinyResult<()> {
+        Ok(())
+    }
+
+    fn assistant_message(&self, message: &AssistantMessage) -> TinyResult<()> {
+        Ok(())
+    }
+
+    fn user_message(&self, message: &UserMessage) -> TinyResult<()> {
+        Ok(())
+    }
+}
 
 pub fn base_loop<CC, CR, TE>(
     messages: &mut Vec<ChatMessage>,
@@ -34,26 +57,27 @@ pub fn base_loop<CC, CR, TE>(
     tools: &Vec<Tool>,
     tool_executor: TE,
     chunk_receiver: CR,
-    _ctx: &LoopContext,
+    handlers: &Box<dyn EventHandler>,
 ) -> TinyResult<()>
 where
     CC: Fn(&Vec<ChatMessage>, &Vec<Tool>, &ChatOptions, &CR) -> TinyResult<AssistantMessage>,
     CR: Fn(Chunk) -> TinyResult<()>,
     TE: Fn(String, Option<String>) -> TinyResult<String>,
 {
-    // TODO: notify before loop start
+    handlers.loop_start()?;
 
+    let mut n = 0;
     loop {
-        // TODO: notify loop round N
+        n += 1;
+
+        handlers.loop_round(n)?;
 
         // TODO: try to fetch content that need to insert into the message list, like user input while waiting for model response
-
-        // TODO: session update
 
         // TODO: error handling: call chat fail strategy with and response, retry? cancel? patching?
         let message = chat_client(messages, tools, options, &chunk_receiver)?;
 
-        // TODO: notify about chat client response
+        handlers.assistant_message(&message)?;
 
         let orig_size = messages.len();
 
@@ -61,22 +85,20 @@ where
             && let Some(tool_calls) = &message.tool_calls
         {
             if tool_calls.len() > 0 {
-                // TODO: notify about tool call loop
-
                 for tool_call in tool_calls {
-                    // TODO: notify about tool call detail
-
                     // TODO: error hanling: retry? cancel?
                     let tool_result =
                         tool_executor(tool_call.name.to_string(), tool_call.arguments.clone())?;
 
-                    // TODO: notify about tool call result
-
-                    messages.push(ChatMessage::Tool(ToolMessage {
+                    let tool_message = ChatMessage::Tool(ToolMessage {
                         id: tool_call.id.to_string(),
                         name: tool_call.name.to_string(),
                         content: tool_result,
-                    }));
+                    });
+
+                    handlers.message(&tool_message)?;
+
+                    messages.push(tool_message);
                 }
             }
         }
@@ -89,7 +111,7 @@ where
         }
     }
 
-    // TODO: notify loop end
+    handlers.loop_end()?;
 
     Ok(())
 }

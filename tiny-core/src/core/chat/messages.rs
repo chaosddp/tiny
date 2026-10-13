@@ -58,7 +58,7 @@ pub struct UserImageContentPart {
     pub detail: ImageDetail,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum UserContentPart {
     Text(String),
     Video(String),
@@ -66,7 +66,7 @@ pub enum UserContentPart {
     Image { image: String, detail: ImageDetail },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum UserMessage {
     Text(String),
     Parts(Vec<UserContentPart>),
