@@ -1,3 +1,4 @@
+pub mod session;
 pub mod agent;
 pub mod chat;
 pub mod decision;
