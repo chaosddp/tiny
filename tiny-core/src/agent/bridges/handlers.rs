@@ -1,20 +1,21 @@
-use crate::core::{TinyResult, agent::EventHandler, chat::messages::ChatMessage};
+use crate::core::{TinyResult, agent::EventHandler};
 use mlua::prelude::*;
 
 pub struct LuaEventHandlers {
-    lua: WeakLua,
     handlers: LuaTable,
 }
 
 impl LuaEventHandlers {
-    pub fn new(lua: &Lua, handlers: LuaTable) -> LuaResult<Self> {
-        Ok(Self {
-            handlers,
-            lua: lua.weak(),
-        })
+    pub fn new(handlers: LuaTable) -> Self {
+        Self { handlers }
     }
+}
 
-    fn call(&self, event_name: &str, args: impl IntoLuaMulti + Clone) -> TinyResult<()> {
+impl EventHandler for LuaEventHandlers {
+    fn emit<T>(&self, event_name: &str, args: &T) -> TinyResult<()>
+    where
+        T: IntoLua + Clone,
+    {
         for cb_obj in self.handlers.sequence_values::<LuaTable>() {
             if let Ok(obj) = cb_obj {
                 if let Ok(cb_func) = obj.get::<LuaFunction>(event_name) {
@@ -30,48 +31,5 @@ impl LuaEventHandlers {
         }
 
         Ok(())
-    }
-}
-
-impl EventHandler for LuaEventHandlers {
-    fn loop_start(&self) -> crate::core::TinyResult<()> {
-        self.call("loop_start", ())?;
-
-        Ok(())
-    }
-
-    fn loop_end(&self) -> TinyResult<()> {
-        self.call("loop_end", ())?;
-
-        Ok(())
-    }
-
-    fn loop_round(&self, n: u32) -> TinyResult<()> {
-        self.call("loop_round", n)?;
-
-        Ok(())
-    }
-
-    fn message(&self, message: &ChatMessage) -> TinyResult<()> {
-        self.call("message", message.into_lua(&self.lua.upgrade())?)?;
-
-        Ok(())
-    }
-
-    fn assistant_message(
-        &self,
-        message: &crate::core::chat::messages::AssistantMessage,
-    ) -> TinyResult<()> {
-        let msg = ChatMessage::Assistant(message.clone());
-
-        self.message(&msg)?;
-
-        Ok(())
-    }
-
-    fn user_message(&self, message: &crate::core::chat::messages::UserMessage) -> TinyResult<()> {
-        let msg = ChatMessage::User(message.clone());
-
-        self.message(&msg)
     }
 }

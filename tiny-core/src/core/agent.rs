@@ -6,7 +6,7 @@ use crate::core::{
     TinyResult,
     chat::{
         chunk::Chunk,
-        messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage, UserMessage},
+        messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage},
         tool::Tool,
     },
 };
@@ -23,29 +23,9 @@ pub struct ChatOptions {
 }
 
 pub trait EventHandler {
-    fn loop_start(&self) -> TinyResult<()> {
-        Ok(())
-    }
-
-    fn loop_end(&self) -> TinyResult<()> {
-        Ok(())
-    }
-
-    fn loop_round(&self, _n: u32) -> TinyResult<()> {
-        Ok(())
-    }
-
-    fn message(&self, _message: &ChatMessage) -> TinyResult<()> {
-        Ok(())
-    }
-
-    fn assistant_message(&self, _message: &AssistantMessage) -> TinyResult<()> {
-        Ok(())
-    }
-
-    fn user_message(&self, _message: &UserMessage) -> TinyResult<()> {
-        Ok(())
-    }
+    fn emit<T>(&self, event_name: &str, args: &T) -> TinyResult<()>
+    where
+        T: IntoLua + Clone;
 }
 
 pub fn base_loop<CC, CR, TE>(
@@ -55,27 +35,27 @@ pub fn base_loop<CC, CR, TE>(
     tools: &Vec<Tool>,
     tool_executor: TE,
     chunk_receiver: CR,
-    handlers: &Box<dyn EventHandler>,
+    handlers: &impl EventHandler,
 ) -> TinyResult<()>
 where
     CC: Fn(&Vec<ChatMessage>, &Vec<Tool>, &ChatOptions, &CR) -> TinyResult<AssistantMessage>,
     CR: Fn(Chunk) -> TinyResult<()>,
     TE: Fn(String, Option<String>) -> TinyResult<String>,
 {
-    handlers.loop_start()?;
+    handlers.emit("event_name", &LuaValue::Nil)?;
 
     let mut n = 0;
     loop {
         n += 1;
 
-        handlers.loop_round(n)?;
+        handlers.emit("loop_round", &n)?;
 
         // TODO: try to fetch content that need to insert into the message list, like user input while waiting for model response
 
         // TODO: error handling: call chat fail strategy with and response, retry? cancel? patching?
         let message = chat_client(messages, tools, options, &chunk_receiver)?;
 
-        handlers.assistant_message(&message)?;
+        handlers.emit("message", &message)?;
 
         let orig_size = messages.len();
 
@@ -88,15 +68,15 @@ where
                     let tool_result =
                         tool_executor(tool_call.name.to_string(), tool_call.arguments.clone())?;
 
-                    let tool_message = ChatMessage::Tool(ToolMessage {
+                    let tool_message = ToolMessage {
                         id: tool_call.id.to_string(),
                         name: tool_call.name.to_string(),
                         content: tool_result,
-                    });
+                    };
 
-                    handlers.message(&tool_message)?;
+                    handlers.emit("message", &tool_message)?;
 
-                    messages.push(tool_message);
+                    messages.push(ChatMessage::Tool(tool_message));
                 }
             }
         }
@@ -109,7 +89,7 @@ where
         }
     }
 
-    handlers.loop_end()?;
+    handlers.emit("loop_end", &LuaValue::Nil)?;
 
     Ok(())
 }

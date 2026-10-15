@@ -50,9 +50,19 @@ impl AppContext {
             }
 
             let mut agent = TinyAgentBuilder::new(&exec_folder.to_path_buf())?
-                .config(std::env::current_dir()?.parent().unwrap().parent().unwrap().join(".tiny.json"))?
+                .config(
+                    std::env::current_dir()?
+                        .parent()
+                        .unwrap()
+                        .parent()
+                        .unwrap()
+                        .join(".tiny.json"),
+                )?
                 .load_exetensions()?
-                .load_tools(exec_folder.to_path_buf())?
+                .load_tools(
+                    exec_folder.join("tiny").join("core"),
+                    exec_folder.join("tools").to_path_buf(),
+                )?
                 .build()?;
 
             let options = ChatOptions {

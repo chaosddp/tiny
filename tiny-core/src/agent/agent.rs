@@ -2,12 +2,14 @@ use mlua::prelude::*;
 
 use crate::{
     agent::{
-        bridges::{chat::LuaChatClient, tools::executor::LuaToolExecutor},
+        bridges::{
+            chat::LuaChatClient, handlers::LuaEventHandlers, tools::executor::LuaToolExecutor,
+        },
         config::Configurations,
     },
     core::{
         TinyResult,
-        agent::{ChatOptions, EventHandler, base_loop},
+        agent::{ChatOptions, base_loop},
         chat::{
             chunk::Chunk,
             messages::{ChatMessage, UserMessage},
@@ -23,7 +25,7 @@ pub struct TinyAgent {
     pub(crate) messages: Vec<ChatMessage>,
     pub(crate) chat_client: LuaChatClient,
     pub(crate) tool_executor: LuaToolExecutor,
-    pub(crate) handlers: Box<dyn EventHandler>,
+    pub(crate) handlers: LuaEventHandlers,
     pub(crate) tools: Vec<Tool>,
 }
 

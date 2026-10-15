@@ -135,12 +135,11 @@ impl TinyAgentBuilder {
             .tool_executor
             .ok_or(Error::RuntimeError("tool executor not initialized".into()))?;
         let tools = tool_executor.get_tools();
-        let handlers = Box::new(LuaEventHandlers::new(
-            &self.lua,
+        let handlers = LuaEventHandlers::new(
             self.lua
                 .globals()
                 .get_path::<LuaTable>("tiny.event_handlers")?,
-        )?);
+        );
 
         Ok(TinyAgent {
             lua: self.lua,
