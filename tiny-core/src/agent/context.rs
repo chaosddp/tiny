@@ -18,7 +18,7 @@ impl ContextBuilder {
         Ok(Self(lua.create_table()?))
     }
 
-    pub fn build(table: LuaTable) -> LuaResult<Context> {
+    pub fn build(lua: &Lua, table: LuaTable) -> LuaResult<Context> {
         let session_manager_backend: LuaTable = table.get("session_manager")?;
         let tool_executor_backend: LuaTable = table.get("tool_executor")?;
         let event_hub_backend: LuaTable = table.get("event_hub")?;
@@ -26,7 +26,7 @@ impl ContextBuilder {
 
         Ok(Context {
             event_hub: EventHub::new(event_hub_backend),
-            chat_client: ChatClient::new(chat_clients_table),
+            chat_client: ChatClient::new(lua, chat_clients_table)?,
             tool_executor: ToolExecutor::new(tool_executor_backend),
             session_manager: SessionManager::new(session_manager_backend),
         })

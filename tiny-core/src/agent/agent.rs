@@ -1,16 +1,17 @@
-use std::{fs::File, io::Read, path::Path};
-
 use crate::{
     TinyResult,
     agent::{
+        chat_client::ChatOptions,
         configuration::Configurations,
         context::{Context, ContextBuilder},
         extensions::load_extension,
     },
+    core::chat::messages::ChatMessage,
     utils::register_all,
 };
 use log::debug;
 use mlua::prelude::*;
+use std::{fs::File, io::Read, path::Path};
 
 pub struct TinyAgent {
     lua: Lua,
@@ -101,13 +102,39 @@ impl TinyAgent {
         // load tools
 
         let context_builder = tiny_table.get::<LuaAnyUserData>("backends")?;
-        let context =
-            ContextBuilder::build(context_builder.call_method::<LuaTable>("collect", ())?)?;
+        let context = ContextBuilder::build(
+            &lua,
+            context_builder.call_method::<LuaTable>("collect", ())?,
+        )?;
 
         Ok(Self { lua, context })
     }
 
-    pub fn run(&self) -> TinyResult<()> {
+    pub fn chat(&self, client: &str, message: &str, options: &ChatOptions) -> TinyResult<()> {
+        let lua_weak = self.lua.weak();
+        let lua = lua_weak.try_upgrade().unwrap();
+
+        if let Ok(msg) = ChatMessage::from_lua(v, &lua) {
+            let messages = vec![];
+            let options = ChatOptions {
+                model: "qwen3.5".into(),
+                base_url: "http://localhost:11434/v1".into(),
+                api_key: "ollama".into(),
+                stream: Some(true),
+                stream_include_usage: Some(true),
+                max_tokens: Some(64 * 1024),
+                reasoning_effort: None,
+            };
+
+            let assistant_message = self
+                .context
+                .chat_client
+                .chat("openai", &messages, None, &options, &self.context.event_hub)
+                .unwrap();
+        } else {
+            debug!("get invalid message: {:?}", v);
+        }
+
         Ok(())
     }
 }

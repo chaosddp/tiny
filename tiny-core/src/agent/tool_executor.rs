@@ -13,7 +13,7 @@ impl ToolExecutor {
         todo!()
     }
 
-    pub fn execute(&self, name: &str, arguments: &str) -> TinyResult<String> {
+    pub fn execute(&self, name: &str, arguments: Option<&str>) -> TinyResult<String> {
         todo!()
     }
 }

@@ -365,3 +365,22 @@ impl IntoLua for &ChatMessage {
         }
     }
 }
+
+impl FromLua for ChatMessage {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        match value {
+            LuaValue::Table(tbl)=>{
+                let role = tbl.get::<String>("role")?;
+
+                match role.as_ref() {
+                    "system" =>  Ok(ChatMessage::System(tbl.get("content")?)),
+                    "assistant" => Ok(ChatMessage::Assistant(AssistantMessage::from_lua(value, lua)?)),
+                    "user"=>Ok(ChatMessage::User(UserMessage::from_lua(value, lua)?)),
+                    "tool"=>Ok(ChatMessage::Tool(ToolMessage::from_lua(value, lua)?)),
+                    _=>Err(LuaError::UserDataTypeMismatch)
+                }
+            },
+            _=>Err(LuaError::UserDataTypeMismatch)
+        }
+    }
+}
