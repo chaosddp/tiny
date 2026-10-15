@@ -1,21 +1,8 @@
 use mlua::prelude::*;
 
 use crate::{
-    agent::{
-        bridges::{
-            chat::LuaChatClient, handlers::LuaEventHandlers, tools::executor::LuaToolExecutor,
-        },
-        config::Configurations,
-    },
-    core::{
-        TinyResult,
-        agent::{ChatOptions, base_loop},
-        chat::{
-            chunk::Chunk,
-            messages::{ChatMessage, UserMessage},
-            tool::Tool,
-        },
-    },
+    agent::{Configurations, LuaChatClient, LuaEventHandlers, LuaToolExecutor},
+    core::{ChatMessage, ChatOptions, Chunk, TinyResult, Tool, UserMessage, base_loop},
 };
 
 #[allow(dead_code)]

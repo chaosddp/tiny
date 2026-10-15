@@ -1,15 +1,6 @@
 use std::io::{BufRead, BufReader};
 
-use crate::core::{
-    TinyResult,
-    agent::ChatOptions,
-    chat::{
-        chunk::Chunk,
-        messages::{AssistantMessage, ChatMessage},
-        tool::Tool,
-    },
-    error::Error,
-};
+use crate::core::*;
 use log::debug;
 use mlua::FromLua;
 use mlua::prelude::*;
@@ -54,7 +45,10 @@ impl LuaChatClient {
     where
         F: Fn(Chunk) -> TinyResult<()>,
     {
-        let lua = self.lua.try_upgrade().ok_or(Error::InvalidLuaReference)?;
+        let lua = self
+            .lua
+            .try_upgrade()
+            .ok_or(TinyError::InvalidLuaReference)?;
         let inner = self.inner.get::<LuaTable>(client)?;
 
         let lua_messages = lua.create_table()?;
@@ -84,12 +78,12 @@ impl LuaChatClient {
         )?;
 
         if !success {
-            return Err(Error::RuntimeError(
+            return Err(TinyError::RuntimeError(
                 "Fail to create chat request options".into(),
             ));
         }
 
-        let option_table = request_options.as_table().ok_or(Error::RuntimeError(
+        let option_table = request_options.as_table().ok_or(TinyError::RuntimeError(
             "chat provider return invalid result, it should be a table with 'url', 'headers' and 'body' fields.".into(),
         ))?;
 
@@ -126,7 +120,7 @@ impl LuaChatClient {
                 Err(e) => {
                     debug!("Lua client request error: {:?}", e);
 
-                    return Err(Error::HttpError(
+                    return Err(TinyError::HttpError(
                         e.status().unwrap().as_u16(),
                         e.to_string(),
                     ));
@@ -134,7 +128,7 @@ impl LuaChatClient {
             },
             Err(e) => {
                 // TODO: call failed function
-                return Err(Error::RuntimeError(e.to_string()));
+                return Err(TinyError::RuntimeError(e.to_string()));
             }
         };
 

@@ -1,6 +1,8 @@
-use crate::core::{TinyResult, agent::EventHandler};
+use crate::core::{EventHandler, TinyResult};
 use mlua::prelude::*;
 
+/// used to emit event to registered lua object, it will be bind with a lua table that contains a list of table.
+/// when we call 'emit' function, it will try call the method of the each table with 'event name'
 pub struct LuaEventHandlers {
     handlers: LuaTable,
 }

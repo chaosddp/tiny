@@ -3,12 +3,7 @@ use serde::{Deserialize, Serialize};
 use tiny_macros::IntoLuaTable;
 
 use crate::core::{
-    TinyResult,
-    chat::{
-        chunk::Chunk,
-        messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage},
-        tool::Tool,
-    },
+    AssistantMessage, ChatMessage, Chunk, FinishReason, TinyResult, Tool, ToolMessage,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone, FromLua, IntoLuaTable)]

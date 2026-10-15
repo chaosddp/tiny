@@ -3,17 +3,12 @@ use std::{fs::File, io::Read, path::PathBuf, vec};
 use mlua::prelude::*;
 
 use crate::{
-    agent::{
-        agent::TinyAgent,
-        bridges::{
-            chat::LuaChatClient, handlers::LuaEventHandlers, tools::executor::LuaToolExecutor,
-        },
-        config::Configurations,
-    },
-    core::{TinyResult, chat::messages::ChatMessage, error::Error},
+    agent::{Configurations, LuaChatClient, LuaEventHandlers, LuaToolExecutor, TinyAgent},
+    core::{ChatMessage, TinyError, TinyResult},
     lua::register_all,
 };
 
+/// build for TinyAgent
 pub struct TinyAgentBuilder {
     lua: Lua,
     configs: Option<Configurations>,
@@ -22,6 +17,14 @@ pub struct TinyAgentBuilder {
 }
 
 impl TinyAgentBuilder {
+    /// create a builder with an initialized lua vm, it will do following
+    ///
+    /// 1. set the package path
+    /// 2. register all the lua utilities
+    /// 3. create a global table named as 'tiny'
+    /// 4. create a table in 'tiny' named as 'chat_clients' that used to collect different chat provider
+    /// 5. create a table in 'tiny' named as 'event_handlers' that used to collect event handler objects with event callbacks
+    /// 6. load the entry script 'tiny/main.lua' to start
     pub fn new(root: &PathBuf) -> TinyResult<Self> {
         let lua = Lua::new();
 
@@ -67,6 +70,7 @@ impl TinyAgentBuilder {
         })
     }
 
+    /// change the default prompt
     pub fn prompt(self, prompt: &str) -> Self {
         Self {
             prompt: prompt.to_string(),
@@ -74,6 +78,7 @@ impl TinyAgentBuilder {
         }
     }
 
+    /// load configurations, by default it should '.tiny.json' under current folder
     pub fn config(self, config_file: PathBuf) -> TinyResult<Self> {
         let mut config_str = String::new();
 
@@ -92,9 +97,10 @@ impl TinyAgentBuilder {
         })
     }
 
+    /// load extensions according to configurations from same path of the 'tiny' package
     pub fn load_exetensions(self) -> TinyResult<Self> {
         let Some(configs) = &self.configs else {
-            return Err(Error::RuntimeError(
+            return Err(TinyError::RuntimeError(
                 "load configuration first to determine which extensions to active.".into(),
             ));
         };
@@ -110,9 +116,10 @@ impl TinyAgentBuilder {
         Ok(self)
     }
 
+    // load tools according to configurations from specified path 'tools_root', it will also load default lua utilities under 'tiny/core'
     pub fn load_tools(self, core_root: PathBuf, tools_root: PathBuf) -> TinyResult<Self> {
         let Some(configs) = &self.configs else {
-            return Err(Error::RuntimeError(
+            return Err(TinyError::RuntimeError(
                 "load configuration first to determine which extensions to active.".into(),
             ));
         };
@@ -130,10 +137,10 @@ impl TinyAgentBuilder {
         let messages = vec![ChatMessage::System(self.prompt)];
         let configs = self
             .configs
-            .ok_or(Error::RuntimeError("no configuration loaded".into()))?;
-        let tool_executor = self
-            .tool_executor
-            .ok_or(Error::RuntimeError("tool executor not initialized".into()))?;
+            .ok_or(TinyError::RuntimeError("no configuration loaded".into()))?;
+        let tool_executor = self.tool_executor.ok_or(TinyError::RuntimeError(
+            "tool executor not initialized".into(),
+        ))?;
         let tools = tool_executor.get_tools();
         let handlers = LuaEventHandlers::new(
             self.lua

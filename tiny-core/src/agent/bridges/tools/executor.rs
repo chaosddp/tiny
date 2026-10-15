@@ -4,7 +4,7 @@ use glob::glob;
 use log::debug;
 use mlua::prelude::*;
 
-use crate::core::chat::tool::Tool;
+use crate::core::Tool;
 
 pub struct LuaToolExecutor {
     lua: Lua,
@@ -32,7 +32,8 @@ impl LuaToolExecutor {
         )?;
 
         // patch the require function to adjust the core module
-        lua.load(r#"
+        lua.load(
+            r#"
             local orig_require = require
 
             require = function (module)
@@ -42,7 +43,9 @@ impl LuaToolExecutor {
                     return orig_require(module)
                 end
             end
-        "#).exec()?;
+        "#,
+        )
+        .exec()?;
 
         let require = globals.get::<LuaFunction>("require")?;
 
