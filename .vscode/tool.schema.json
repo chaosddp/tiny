@@ -1,0 +1,51 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "tiny-tool",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "name": {
+            "type": "string",
+            "description": "name of the tool, it will be used for tool call"
+        },
+        "description": {
+            "type": "string",
+            "description": "description of the tool"
+        },
+        "parameters": {
+            "type": "array",
+            "description": "parameters",
+            "default": [],
+            "items": {
+                "type": "object",
+                "description": "parameter definition",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "name of the parameter"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "description of the paremeter"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "data type of the parameter"
+                    },
+                    "required": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ],
+                        "description": "if the paremter is required, default is false"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,4 +1,5 @@
 {
+    "$schema": "../../../.vscode/tool.schema.json",
     "name": "get_weather",
     "description": "get weather of city",
     "parameters": [

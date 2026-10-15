@@ -1,7 +1,7 @@
 local myobj = {}
 
 function myobj:message(message)
-    print(message)
+    -- print(message)
 end
 
 -- register event handlers, handlers will be called according to the register order one by one.

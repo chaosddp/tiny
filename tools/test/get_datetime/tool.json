@@ -1,5 +1,6 @@
 {
+    "$schema": "../../../.vscode/tool.schema.json",
     "name": "get_datetime",
     "description": "get current datetime",
-    "parameters": []   
+    "parameters": []
 }
