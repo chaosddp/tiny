@@ -13,15 +13,40 @@ pub struct LuaToolExecutor {
 }
 
 impl LuaToolExecutor {
-    pub fn from_tools(root: &PathBuf, tools: &Vec<String>) -> LuaResult<Self> {
+    pub fn from_tools(
+        core_root: &PathBuf,
+        tools_root: &PathBuf,
+        tools: &Vec<String>,
+    ) -> LuaResult<Self> {
         let lua = Lua::new();
         let globals = lua.globals();
         let package: LuaTable = globals.get("package")?;
 
         package.set(
             "path",
-            format!("{0}/?.lua;{0}/?/init.lua", root.to_string_lossy()),
+            format!(
+                "{0}/?.lua;{0}/?/init.lua;{1}/?.lua;{1}/?/init.lua",
+                core_root.to_string_lossy(),
+                tools_root.to_string_lossy()
+            ),
         )?;
+
+        // patch the require function to adjust the core module
+        lua.load(r#"
+            local orig_require = require
+
+            require = function (module)
+                if string.sub(module, 1, 5) == "core." then
+                    return orig_require(string.sub(module, 6))
+                else
+                    return orig_require(module)
+                end
+            end
+        "#).exec()?;
+
+        let require = globals.get::<LuaFunction>("require")?;
+
+        require.call::<()>("init")?;
 
         crate::lua::register_all(&lua)?;
 
@@ -32,7 +57,7 @@ impl LuaToolExecutor {
         };
 
         for tool in tools {
-            let tool_definitions = executor.load(root.join(tool))?;
+            let tool_definitions = executor.load(tools_root.join(tool))?;
 
             for tool_def in tool_definitions {
                 executor.tools.push(tool_def);

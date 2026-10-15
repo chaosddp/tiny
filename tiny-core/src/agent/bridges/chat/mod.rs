@@ -15,11 +15,9 @@ use mlua::FromLua;
 use mlua::prelude::*;
 use reqwest::blocking::{Client, ClientBuilder};
 
-/// used to implement basic chatting interface, it will ask binded lua table to preapre request options, and process server response.
+/// used to implement basic chatting interface, it will fetch a chat provider by specified client name, then use it to process http request and response.
 ///
-/// it will bind to a lua table at runtime according to client type
-///
-/// It requires the table contains following methods
+/// It requires the providers contains following methods
 /// 1. prepare_request(self, messages, options)->{url=..., body=..., headers=...} - construct http request options that contains body, headers
 /// 2. process_chunk(self, chunk_str)->{chunk_table} - parse the each SSE line into Chunk message, called if stream enabled
 /// 3. process_message(self, message_str)->{message_table} - parse the LLM response into assistant message, called if stream disabled
@@ -27,16 +25,19 @@ use reqwest::blocking::{Client, ClientBuilder};
 /// 5. parse_failed(self, response, error)->{strategy} -> called on chunk/message processing failed, and provide different strategy
 pub struct LuaChatClient {
     lua: WeakLua,
+    inner: LuaTable, // key if the client name, value if the chat provider
     client: Client,
 }
 
 impl LuaChatClient {
     pub fn new(lua: &Lua) -> LuaResult<Self> {
         let client = ClientBuilder::new().build().unwrap();
+        let inner: LuaTable = lua.globals().get_path("tiny.chat_clients")?;
 
         Ok(Self {
             lua: lua.weak(),
-            client: client,
+            client,
+            inner,
         })
     }
 }
@@ -54,9 +55,7 @@ impl LuaChatClient {
         F: Fn(Chunk) -> TinyResult<()>,
     {
         let lua = self.lua.try_upgrade().ok_or(Error::InvalidLuaReference)?;
-        let globals = lua.globals();
-        let chat_client_table = globals.get_path::<LuaTable>("tiny.chat_clients")?;
-        let inner = chat_client_table.get::<LuaTable>(client)?;
+        let inner = self.inner.get::<LuaTable>(client)?;
 
         let lua_messages = lua.create_table()?;
 
@@ -77,6 +76,7 @@ impl LuaChatClient {
                 LuaValue::Table(t)
             }
         };
+
         // ask provider for request things
         let (success, request_options) = inner.call_method::<(bool, LuaValue)>(
             "prepare_request",
@@ -120,10 +120,7 @@ impl LuaChatClient {
                     } else {
                         let resp_text = resp.text().unwrap();
 
-                        // let assistant_message_table:LuaTable =  self.inner.call_method("process_message", resp_text)?;
-                        let assistant_message = inner.call_method("process_message", resp_text)?;
-
-                        assistant_message
+                        inner.call_method("process_message", resp_text)?
                     }
                 }
                 Err(e) => {

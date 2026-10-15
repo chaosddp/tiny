@@ -33,7 +33,7 @@ impl TinyAgentBuilder {
         package_table.set(
             "path",
             format!(
-                "{0}/tiny/core/?.lua;{0}/tiny/core/?/init.lua;{0}/extensions/?.lua;{0}/extensions/?/init.lua",
+                "{0}/tiny/?.lua;{0}/tiny/?/init.lua;{0}/extensions/?.lua;{0}/extensions/?/init.lua",
                 root.to_string_lossy()
             ),
         )?;
@@ -53,8 +53,10 @@ impl TinyAgentBuilder {
 
         tiny_table.set("event_handlers", event_handler_table)?;
 
+        // set the tiny table to global
         globals.set("tiny", tiny_table)?;
 
+        // require the main.lua as our entry script
         require.call::<()>("main")?;
 
         Ok(Self {
@@ -108,14 +110,14 @@ impl TinyAgentBuilder {
         Ok(self)
     }
 
-    pub fn load_tools(self, root: PathBuf) -> TinyResult<Self> {
+    pub fn load_tools(self, core_root: PathBuf, tools_root: PathBuf) -> TinyResult<Self> {
         let Some(configs) = &self.configs else {
             return Err(Error::RuntimeError(
                 "load configuration first to determine which extensions to active.".into(),
             ));
         };
 
-        let tool_executor = LuaToolExecutor::from_tools(&root.join("tools"), &configs.tools)?;
+        let tool_executor = LuaToolExecutor::from_tools(&core_root, &tools_root, &configs.tools)?;
 
         Ok(Self {
             tool_executor: Some(tool_executor),

@@ -1,4 +1,4 @@
-require "table_utils"
+require "core"
 
 ---@param extensions string[]
 function tiny.load_extensions(extensions)

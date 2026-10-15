@@ -216,7 +216,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut agent = TinyAgentBuilder::new(&exec_folder.to_path_buf())?
                 .config(std::env::current_dir()?.join(".tiny.json"))?
                 .load_exetensions()?
-                .load_tools(exec_folder.to_path_buf())?
+                .load_tools(
+                    exec_folder.join("tiny").join("core").to_path_buf(),
+                    exec_folder.join("tools").to_path_buf(),
+                )?
                 .build()?;
 
             agent.chat("openai", user_message.into(), &options, |chunk| {
