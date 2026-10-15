@@ -1,10 +1,7 @@
-use std::{cell::RefCell, io::Write, ops::Deref, path::PathBuf, str::FromStr};
+use std::{cell::RefCell, io::Write, ops::Deref};
 
 use clap::{Parser, Subcommand, ValueEnum};
-use tiny_core::{
-    agent::agent::{TinyAgent, TinyAgentBuilder},
-    core::agent::ChatOptions,
-};
+use tiny_core::{agent::builder::TinyAgentBuilder, core::agent::ChatOptions};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ThiinkingEffort {

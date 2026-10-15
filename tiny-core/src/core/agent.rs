@@ -6,9 +6,7 @@ use crate::core::{
     TinyResult,
     chat::{
         chunk::Chunk,
-        messages::{
-            AssistantMessage, ChatMessage, FinishReason, ToolCall, ToolMessage, UserMessage,
-        },
+        messages::{AssistantMessage, ChatMessage, FinishReason, ToolMessage, UserMessage},
         tool::Tool,
     },
 };
@@ -33,19 +31,19 @@ pub trait EventHandler {
         Ok(())
     }
 
-    fn loop_round(&self, n: u32) -> TinyResult<()> {
+    fn loop_round(&self, _n: u32) -> TinyResult<()> {
         Ok(())
     }
 
-    fn message(&self, message: &ChatMessage) -> TinyResult<()> {
+    fn message(&self, _message: &ChatMessage) -> TinyResult<()> {
         Ok(())
     }
 
-    fn assistant_message(&self, message: &AssistantMessage) -> TinyResult<()> {
+    fn assistant_message(&self, _message: &AssistantMessage) -> TinyResult<()> {
         Ok(())
     }
 
-    fn user_message(&self, message: &UserMessage) -> TinyResult<()> {
+    fn user_message(&self, _message: &UserMessage) -> TinyResult<()> {
         Ok(())
     }
 }
