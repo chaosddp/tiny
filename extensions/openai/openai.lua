@@ -1,3 +1,7 @@
+local json = json
+local table = table
+local ipairs = ipairs
+
 ---@param tool_call ToolCall
 ---@return table<string, any>
 local function tool_call_to_openai(tool_call)
@@ -59,7 +63,12 @@ local function message_to_openai(message)
                     })
                 else
                     if part.image and part.image then
-                        local detail = part.image_detail or "auto"
+                        local detail = "auto"
+
+                        if part.image_detail ~= nil then
+                            detail = part.image_detail
+                        end
+
                         table.insert(m.parts, {
                             ["type"] = "image_url",
                             image_url = { url = part.image, detail = detail }
@@ -112,6 +121,11 @@ local OpenAIChatProvider = {}
 
 OpenAIChatProvider.__index = OpenAIChatProvider
 
+---@param messages Message[]
+---@param options  ChatOptions
+---@param tools    Tool[]
+---@return boolean
+---@return RequestOptions
 function OpenAIChatProvider:prepare_request(messages, options, tools)
     local url = options.base_url .. "/chat/completions"
 
@@ -121,12 +135,26 @@ function OpenAIChatProvider:prepare_request(messages, options, tools)
         openai_tools = table.map(tools, function (t) return tool_to_openai(t) end)
     end
 
+    local stream = true
+
+    if options.stream == nil then
+        stream = true
+    else
+        stream = options.stream
+    end
+
+    local max_tokens = 8000
+
+    if options.max_tokens ~= nil then
+        max_tokens = options.max_tokens
+    end
+
     local body = {
         model = options.model,
         messages = table.map(messages, function (m) return message_to_openai(m) end),
         tools = openai_tools,
-        stream = options.stream == nil and true or options.stream,
-        max_tokens = options.max_tokens or 8000
+        stream = stream,
+        max_tokens = max_tokens
     }
 
     ---@type RequestOptions
@@ -142,6 +170,8 @@ function OpenAIChatProvider:prepare_request(messages, options, tools)
     return true, request_options
 end
 
+---@param chunk_str string
+---@return Chunk
 function OpenAIChatProvider:process_chunk(chunk_str)
     local chunk_message = json.load(chunk_str)
 
@@ -169,23 +199,31 @@ function OpenAIChatProvider:process_chunk(chunk_str)
     return chunk
 end
 
+---@param message_str string
+---@return AssistantMessage?
 function OpenAIChatProvider:process_message(message_str)
     ---@type OpenAIMessageRespons
     local full_message = json.load(message_str)
 
     if full_message and full_message.choices and #full_message.choices > 0 then
+        ---@type Usage?
+        local usage = nil
+
+        if full_message.usage ~= nil then
+            usage = {
+                prompt = full_message.usage.prompt_tokens,
+                completion = full_message.usage.completion_tokens,
+                total = full_message.usage.total_tokens
+            }
+        end
+
         ---@type AssistantMessage
         local message = {
             role = "assistant",
             content = full_message.choices[1].message.content,
             reasoning = full_message.choices[1].message.reasoning,
             finish_reason = full_message.choices[1].finish_reason,
-            usage = full_message.usage ~= nil
-                and {
-                    prompt = full_message.usage.prompt_tokens,
-                    completion = full_message.usage.completion_tokens,
-                    total = full_message.usage.total_tokens
-                } or nil
+            usage = usage
         }
 
         return message
