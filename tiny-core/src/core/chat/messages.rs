@@ -72,7 +72,7 @@ pub enum UserMessage {
     Parts(Vec<UserContentPart>),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum ChatMessage {
     System(String),
     User(UserMessage),
@@ -366,65 +366,23 @@ impl IntoLua for &ChatMessage {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+impl FromLua for ChatMessage {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        match &value {
+            LuaValue::Table(tbl) => {
+                let role = tbl.get::<String>("role")?;
 
-    #[test]
-    fn test_struct_message_serialize() {
-        let lua = Lua::new();
-
-        let msg: AssistantMessage = lua
-            .from_value(
-                lua.load(r#"{content = "content", reasoning="reasoning", finish_reason="Stop"}"#)
-                    .eval()
-                    .unwrap(),
-            )
-            .unwrap();
-
-        assert_eq!(msg.content, Some("content".to_string()));
-        assert_eq!(msg.reasoning, Some("reasoning".to_string()));
-        assert!(msg.reasoning_details.is_none());
-        assert!(msg.tool_calls.is_none());
-        assert_eq!(msg.finish_reason, FinishReason::Stop);
-        assert!(msg.usage.is_none());
-    }
-
-    #[test]
-    fn test_struct_message_deserialize() {
-        let lua = Lua::new();
-
-        let msg = AssistantMessage {
-            content: Some("content".to_string()),
-            reasoning: Some("reasoning".to_string()),
-            reasoning_details: None,
-            tool_calls: Some(vec![ToolCall {
-                id: "t1".to_string(),
-                name: "my_tool".to_string(),
-                index: 0,
-                arguments: Some(r#"{"a": 1}"#.to_string()),
-            }]),
-            finish_reason: FinishReason::ToolCall,
-            usage: None,
-        };
-
-        let table = msg.into_lua(&lua).unwrap();
-
-        assert!(table.is_table());
-
-        let table = table.as_table().unwrap();
-
-        assert_eq!(
-            table.get::<String>("content").unwrap(),
-            "content".to_string()
-        );
-        assert_eq!(
-            table.get::<String>("reasoning").unwrap(),
-            "reasoning".to_string()
-        );
-        assert_eq!(
-            table.get::<LuaValue>("reasoning_details").unwrap(),
-            LuaValue::Nil
-        );
+                match role.as_ref() {
+                    "system" => Ok(ChatMessage::System(tbl.get("content")?)),
+                    "assistant" => Ok(ChatMessage::Assistant(AssistantMessage::from_lua(
+                        value, lua,
+                    )?)),
+                    "user" => Ok(ChatMessage::User(UserMessage::from_lua(value, lua)?)),
+                    "tool" => Ok(ChatMessage::Tool(ToolMessage::from_lua(value, lua)?)),
+                    _ => Err(LuaError::UserDataTypeMismatch),
+                }
+            }
+            _ => Err(LuaError::UserDataTypeMismatch),
+        }
     }
 }

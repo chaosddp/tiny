@@ -26,6 +26,9 @@ function Path.is_dir(s) end
 ---@return boolean
 function Path.exists(s) end
 
+---@param s string
+function Path.mkdir(s) end
+
 --- get detail info for a path
 ---@param s string
 ---@return PathInfo

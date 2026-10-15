@@ -1,8 +1,13 @@
 use mlua::prelude::*;
 
 use crate::{
-    agent::{Configurations, LuaChatClient, LuaEventHandlers, LuaToolExecutor},
-    core::{ChatMessage, ChatOptions, Chunk, TinyResult, Tool, UserMessage, base_loop},
+    agent::{
+        Configurations, LuaChatClient, LuaEventHandlers, LuaToolExecutor,
+        session::manager::SessionManager,
+    },
+    core::{
+        ChatMessage, ChatOptions, Chunk, EventHandler, TinyResult, Tool, UserMessage, base_loop,
+    },
 };
 
 #[allow(dead_code)]
@@ -13,10 +18,39 @@ pub struct TinyAgent {
     pub(crate) chat_client: LuaChatClient,
     pub(crate) tool_executor: LuaToolExecutor,
     pub(crate) handlers: LuaEventHandlers,
+    pub(crate) session_manager: SessionManager,
     pub(crate) tools: Vec<Tool>,
 }
 
 impl TinyAgent {
+    pub fn init_session(&mut self) -> TinyResult<()> {
+        match self.session_manager.last_session()? {
+            Some(session_name) => {
+                self.session_manager.switch_session(&session_name)?;
+
+                let messages = self.session_manager.load_memory(&session_name)?;
+
+                self.messages.clear();
+                for msg in messages {
+                    self.messages.push(msg);
+                }
+            }
+            _ => {
+                let new_session_name = self.session_manager.new_session()?;
+
+                // NOTE: we should switch session before emit messages, or current messages will not be stored
+                self.session_manager.switch_session(&new_session_name)?;
+
+                // since it is a new session, we need to emit current messages
+                for message in &self.messages {
+                    self.handlers.emit("message", &message)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn chat<F>(
         &mut self,
         client: &str,
@@ -27,7 +61,11 @@ impl TinyAgent {
     where
         F: Fn(Chunk) -> TinyResult<()>,
     {
-        self.messages.push(ChatMessage::User(message));
+        let use_message = ChatMessage::User(message);
+
+        self.handlers.emit("message", &&use_message)?;
+
+        self.messages.push(use_message);
 
         base_loop(
             &mut self.messages,

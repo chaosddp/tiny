@@ -50,7 +50,7 @@ where
         // TODO: error handling: call chat fail strategy with and response, retry? cancel? patching?
         let message = chat_client(messages, tools, options, &chunk_receiver)?;
 
-        handlers.emit("message", &message)?;
+        handlers.emit("message", &&ChatMessage::Assistant(message.clone()))?;
 
         let orig_size = messages.len();
 
@@ -69,7 +69,7 @@ where
                         content: tool_result,
                     };
 
-                    handlers.emit("message", &tool_message)?;
+                    handlers.emit("message", &&ChatMessage::Tool(tool_message.clone()))?;
 
                     messages.push(ChatMessage::Tool(tool_message));
                 }

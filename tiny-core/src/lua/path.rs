@@ -34,6 +34,12 @@ pub fn working_dir(_: &Lua, _: ()) -> LuaResult<String> {
     Ok(cur_dir.to_string_lossy().to_string())
 }
 
+pub fn make_dir(_: &Lua, path: String) -> LuaResult<()> {
+    std::fs::create_dir_all(&path)?;
+
+    Ok(())
+}
+
 pub fn get_path_info(lua: &Lua, p: String) -> LuaResult<LuaTable> {
     let path = Path::new(&p);
     let info_table = lua.create_table()?;
@@ -72,6 +78,7 @@ pub fn register(lua: &Lua) -> LuaResult<()> {
     path_table.set("source_base_dir", lua.create_function(source_base_dir)?)?;
     path_table.set("working_dir", lua.create_function(working_dir)?)?;
     path_table.set("glob", lua.create_function(glob)?)?;
+    path_table.set("mkdir", lua.create_function(make_dir)?)?;
 
     lua.globals().set("path", path_table)?;
 

@@ -3,7 +3,10 @@ use std::{fs::File, io::Read, path::PathBuf, vec};
 use mlua::prelude::*;
 
 use crate::{
-    agent::{Configurations, LuaChatClient, LuaEventHandlers, LuaToolExecutor, TinyAgent},
+    agent::{
+        Configurations, LuaChatClient, LuaEventHandlers, LuaToolExecutor, TinyAgent,
+        session::manager::SessionManager,
+    },
     core::{ChatMessage, TinyError, TinyResult},
     lua::register_all,
 };
@@ -133,6 +136,11 @@ impl TinyAgentBuilder {
     }
 
     pub fn build(self) -> TinyResult<TinyAgent> {
+        let session_manager_backend = self
+            .lua
+            .globals()
+            .get_path::<LuaTable>("tiny.session_manager")?;
+
         let chat_client = LuaChatClient::new(&self.lua)?;
         let messages = vec![ChatMessage::System(self.prompt)];
         let configs = self
@@ -156,6 +164,7 @@ impl TinyAgentBuilder {
             tool_executor,
             handlers,
             tools,
+            session_manager: SessionManager::new(session_manager_backend),
         })
     }
 }
