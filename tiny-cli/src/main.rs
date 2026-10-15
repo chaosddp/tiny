@@ -222,7 +222,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )?
                 .build()?;
 
-            agent.init_session()?;
+            agent.init()?;
 
             agent.chat("openai", user_message.into(), &options, |chunk| {
                 chunk_receiver.recv(chunk)?;

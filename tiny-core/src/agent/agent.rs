@@ -1,3 +1,4 @@
+use log::debug;
 use mlua::prelude::*;
 
 use crate::{
@@ -6,7 +7,8 @@ use crate::{
         session::manager::SessionManager,
     },
     core::{
-        ChatMessage, ChatOptions, Chunk, EventHandler, TinyResult, Tool, UserMessage, base_loop,
+        ChatMessage, ChatOptions, Chunk, EventHandler, TinyError, TinyResult, Tool, UserMessage,
+        base_loop,
     },
 };
 
@@ -23,14 +25,13 @@ pub struct TinyAgent {
 }
 
 impl TinyAgent {
-    pub fn init_session(&mut self) -> TinyResult<()> {
+    fn init_session(&mut self) -> TinyResult<()> {
         match self.session_manager.last_session()? {
             Some(session_name) => {
                 self.session_manager.switch_session(&session_name)?;
 
                 let messages = self.session_manager.load_memory(&session_name)?;
 
-                self.messages.clear();
                 for msg in messages {
                     self.messages.push(msg);
                 }
@@ -51,6 +52,26 @@ impl TinyAgent {
                     }
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    pub fn init(&mut self) -> TinyResult<()> {
+        self.init_session()?;
+
+        let system_message = self.messages.get_mut(0).unwrap();
+
+        let ChatMessage::System(prompt) = system_message else {
+            return Err(TinyError::RuntimeError(
+                "first message should be system prompt.".into(),
+            ));
+        };
+
+        if let Ok(new_prompt) = self.handlers.collect("prompt", prompt) {
+            debug!("prompt changed to: {}", new_prompt);
+
+            *prompt = new_prompt;
         }
 
         Ok(())

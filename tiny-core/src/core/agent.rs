@@ -21,6 +21,11 @@ pub trait EventHandler {
     fn emit<T>(&self, event_name: &str, args: &T) -> TinyResult<()>
     where
         T: IntoLua + Clone;
+
+    // collect data from handlers by events
+    fn collect<T>(&self, event_name: &str, args: &T) -> TinyResult<T>
+    where
+        T: FromLua + IntoLua + Clone;
 }
 
 pub fn base_loop<CC, CR, TE>(

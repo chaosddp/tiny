@@ -34,4 +34,21 @@ impl EventHandler for LuaEventHandlers {
 
         Ok(())
     }
+
+    fn collect<T>(&self, event_name: &str, args: &T) -> TinyResult<T>
+    where
+        T: FromLua + IntoLua + Clone,
+    {
+        let mut ret = args.clone();
+
+        for cb_obj in self.handlers.sequence_values::<LuaTable>() {
+            if let Ok(obj) = cb_obj {
+                if let Ok(cb_func) = obj.get::<LuaFunction>(event_name) {
+                    ret = cb_func.call::<T>((obj, ret))?;
+                }
+            }
+        }
+
+        Ok(ret)
+    }
 }
