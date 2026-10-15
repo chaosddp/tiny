@@ -1,0 +1,5 @@
+{
+    "name": "get_platform",
+    "description": "get current system platform",
+    "parameters": []   
+}

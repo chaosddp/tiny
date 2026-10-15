@@ -9,25 +9,61 @@ use crate::core::chat::tool::Tool;
 pub struct LuaToolExecutor {
     lua: Lua,
     tool_functions: HashMap<String, LuaFunction>,
+    tools: Vec<Tool>,
 }
 
 impl LuaToolExecutor {
-    pub fn new(tools_root: &str) -> LuaResult<Self> {
+    pub fn from_tools(root: &PathBuf, tools: &Vec<String>) -> LuaResult<Self> {
         let lua = Lua::new();
         let globals = lua.globals();
         let package: LuaTable = globals.get("package")?;
 
-        package.set("path", format!("{0}/?.lua;{0}/?/init.lua", tools_root))?;
+        package.set(
+            "path",
+            format!("{0}/?.lua;{0}/?/init.lua", root.to_string_lossy()),
+        )?;
 
         crate::lua::register_all(&lua)?;
 
-        Ok(Self {
+        let mut executor = Self {
             lua,
             tool_functions: HashMap::new(),
-        })
+            tools: vec![],
+        };
+
+        for tool in tools {
+            let tool_definitions = executor.load(root.join(tool))?;
+
+            for tool_def in tool_definitions {
+                executor.tools.push(tool_def);
+            }
+        }
+
+        Ok(executor)
     }
 
-    pub fn load(&mut self, path: PathBuf) -> LuaResult<Vec<Tool>> {
+    pub fn get_tools(&self) -> Vec<Tool> {
+        self.tools.clone()
+    }
+
+    pub fn execute(&self, name: &str, parameters: Option<String>) -> LuaResult<String> {
+        match self.tool_functions.get(name) {
+            Some(tool_func) => {
+                let pcall = self.lua.globals().get::<LuaFunction>("pcall")?;
+
+                let (success, result) = pcall.call::<(bool, String)>((tool_func, parameters))?;
+
+                if success {
+                    Ok(result)
+                } else {
+                    Err(LuaError::RuntimeError(result))
+                }
+            }
+            _ => Err(LuaError::RuntimeError(format!("Invalid tool: {}", name))),
+        }
+    }
+
+    fn load(&mut self, path: PathBuf) -> LuaResult<Vec<Tool>> {
         debug!("Loading tools from: {:?}", path);
 
         let mut tool_definitions = vec![];
@@ -82,14 +118,6 @@ impl LuaToolExecutor {
         }
 
         Ok(tool_definitions)
-    }
-
-    pub fn execute(&self, name: &str, parameters: Option<String>) -> LuaResult<String> {
-        // TODO: pcall to make sure the function will not stop the lua state
-        match self.tool_functions.get(name) {
-            Some(tool_func) => Ok(tool_func.call::<String>(parameters)?),
-            _ => Err(LuaError::RuntimeError(format!("Invalid tool: {}", name))),
-        }
     }
 
     fn load_tool(

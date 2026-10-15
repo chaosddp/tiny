@@ -7,6 +7,4 @@
 /tiny-gui/src-tauri/gen/schemas
 
 /.tiny.json
-/tools/test
-/tools/get_datetime
 /test

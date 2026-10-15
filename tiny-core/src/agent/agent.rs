@@ -16,7 +16,7 @@ use crate::{
         chat::{
             chunk::Chunk,
             messages::{ChatMessage, UserMessage},
-            tool::Tool,
+            tool::{self, Tool},
         },
     },
     lua::register_all,
@@ -84,6 +84,7 @@ impl TinyAgent {
         // load configurations (.tiny.json)
         let mut config_str = String::new();
 
+        #[allow(unused)]
         {
             let mut json_path = Path::new(".tiny.json").to_path_buf();
 
@@ -105,21 +106,10 @@ impl TinyAgent {
 
         load_exetensions.call::<()>(configs.extensions.clone())?;
 
-        let mut tool_executor = LuaToolExecutor::new(exec_folder.join("tools").to_str().unwrap())?;
+        let tool_executor =
+            LuaToolExecutor::from_tools(&exec_folder.join("tools"), &configs.tools)?;
 
-        // load tool functions
-        let mut tools = vec![];
-        for tool in &configs.tools {
-            let tool_path = exec_folder.join("tools").join(tool);
-
-            debug!("loading tool from: {:?}", tool_path);
-
-            if tool_path.exists() {
-                if let Ok(inner_tools) = tool_executor.load(tool_path) {
-                    tools.extend_from_slice(&inner_tools);
-                }
-            }
-        }
+        let tools = tool_executor.get_tools();
 
         let handlers: Box<dyn EventHandler> = Box::new(LuaEventHandlers::new(
             &lua,

@@ -1,0 +1,12 @@
+{
+    "name": "get_weather",
+    "description": "get weather of city",
+    "parameters": [
+        {
+            "name": "city",
+            "description": "the name of city",
+            "type": "string",
+            "required": true
+        }
+    ]
+}
