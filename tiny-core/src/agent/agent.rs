@@ -41,9 +41,14 @@ impl TinyAgent {
                 // NOTE: we should switch session before emit messages, or current messages will not be stored
                 self.session_manager.switch_session(&new_session_name)?;
 
-                // since it is a new session, we need to emit current messages
+                // since it is a new session, we need to emit current messages except system message, as it would be changed
                 for message in &self.messages {
-                    self.handlers.emit("message", &message)?;
+                    match message {
+                        ChatMessage::System(_) => {}
+                        _ => {
+                            self.handlers.emit("message", &message)?;
+                        }
+                    }
                 }
             }
         }
