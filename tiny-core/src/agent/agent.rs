@@ -6,8 +6,7 @@ use mlua::prelude::*;
 use crate::{
     agent::{
         bridges::{
-            chat::LuaChatClient, extensions::load_extension, handlers::LuaEventHandlers,
-            tools::executor::LuaToolExecutor,
+            chat::LuaChatClient, handlers::LuaEventHandlers, tools::executor::LuaToolExecutor,
         },
         config::Configurations,
     },
@@ -40,6 +39,7 @@ impl TinyAgent {
     pub fn new() -> TinyResult<Self> {
         let lua = Lua::new();
         let globals = lua.globals();
+        let require = globals.get::<LuaFunction>("require")?;
 
         let exec_path = std::env::current_exe().unwrap();
         let mut exec_folder = exec_path.parent().unwrap();
@@ -79,17 +79,7 @@ impl TinyAgent {
 
         globals.set("tiny", tiny_table)?;
 
-        let mut main_script_str = String::new();
-
-        {
-            let main_lua_path = exec_folder.join("tiny").join("core").join("init.lua");
-
-            let mut file = File::open(main_lua_path)?;
-
-            file.read_to_string(&mut main_script_str)?;
-        }
-
-        lua.load(main_script_str).exec()?;
+        require.call::<()>("main")?;
 
         // load configurations (.tiny.json)
         let mut config_str = String::new();
@@ -110,18 +100,10 @@ impl TinyAgent {
 
         let configs: Configurations = serde_json::from_str(&config_str)?;
 
-        // load extensions
-        for ext_name in &configs.extensions {
-            let ext_path = exec_folder.join("extensions").join(ext_name);
+        // main.lua will defined a 'tiny.load_extensions' function that require a extension list
+        let load_exetensions = globals.get_path::<LuaFunction>("tiny.load_extensions")?;
 
-            debug!("loading extension from: {:?}", ext_path);
-
-            if ext_path.exists() && ext_path.is_dir() {
-                debug!("loaded extension: {}", ext_name);
-
-                load_extension(&lua, ext_path)?;
-            }
-        }
+        load_exetensions.call::<()>(configs.extensions.clone())?;
 
         let mut tool_executor = LuaToolExecutor::new(exec_folder.join("tools").to_str().unwrap())?;
 
