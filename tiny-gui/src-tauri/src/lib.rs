@@ -1,9 +1,9 @@
-use std::sync::mpsc::{self, Sender, TryRecvError};
+use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
 
 use tauri::ipc::Channel;
 use tauri::{Manager, State};
-use tiny_core::agent::agent::TinyAgent;
+use tiny_core::agent::builder::TinyAgentBuilder;
 use tiny_core::core::agent::ChatOptions;
 use tiny_core::core::chat::chunk::Chunk;
 use tiny_core::core::chat::messages::UserMessage;
@@ -37,7 +37,23 @@ impl AppContext {
         let (message_sender, message_receiver) = mpsc::channel();
 
         let handler = thread::spawn(move || {
-            let mut agent = TinyAgent::new().expect("Fail to create TinyAgent.");
+            let exec_path = std::env::current_exe().unwrap();
+            let mut exec_folder = exec_path.parent().unwrap();
+
+            #[cfg(debug_assertions)]
+            {
+                exec_folder = exec_folder // debug
+                    .parent() // target
+                    .unwrap()
+                    .parent() // workspace
+                    .unwrap();
+            }
+
+            let mut agent = TinyAgentBuilder::new(&exec_folder.to_path_buf())?
+                .config(std::env::current_dir()?.parent().unwrap().parent().unwrap().join(".tiny.json"))?
+                .load_exetensions()?
+                .load_tools(exec_folder.to_path_buf())?
+                .build()?;
 
             let options = ChatOptions {
                 model: "qwen3.5".into(),

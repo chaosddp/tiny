@@ -1,7 +1,10 @@
-use std::{cell::RefCell, io::Write, ops::Deref};
+use std::{cell::RefCell, io::Write, ops::Deref, path::PathBuf, str::FromStr};
 
 use clap::{Parser, Subcommand, ValueEnum};
-use tiny_core::{agent::agent::TinyAgent, core::agent::ChatOptions};
+use tiny_core::{
+    agent::agent::{TinyAgent, TinyAgentBuilder},
+    core::agent::ChatOptions,
+};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ThiinkingEffort {
@@ -202,7 +205,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let chunk_receiver = ConsoleChunkReceiver::new();
 
-            let mut agent = TinyAgent::new()?;
+            let exec_path = std::env::current_exe().unwrap();
+            let mut exec_folder = exec_path.parent().unwrap();
+
+            #[cfg(debug_assertions)]
+            {
+                exec_folder = exec_folder // debug
+                    .parent() // target
+                    .unwrap()
+                    .parent() // workspace
+                    .unwrap();
+            }
+            let mut agent = TinyAgentBuilder::new(&exec_folder.to_path_buf())?
+                .config(std::env::current_dir()?.join(".tiny.json"))?
+                .load_exetensions()?
+                .load_tools(exec_folder.to_path_buf())?
+                .build()?;
 
             agent.chat("openai", user_message.into(), &options, |chunk| {
                 chunk_receiver.recv(chunk)?;

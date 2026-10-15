@@ -1,13 +1,8 @@
-use std::{fs::File, io::Read, path::Path, vec};
-
-use log::debug;
 use mlua::prelude::*;
 
 use crate::{
     agent::{
-        bridges::{
-            chat::LuaChatClient, handlers::LuaEventHandlers, tools::executor::LuaToolExecutor,
-        },
+        bridges::{chat::LuaChatClient, tools::executor::LuaToolExecutor},
         config::Configurations,
     },
     core::{
@@ -16,118 +11,23 @@ use crate::{
         chat::{
             chunk::Chunk,
             messages::{ChatMessage, UserMessage},
-            tool::{self, Tool},
+            tool::Tool,
         },
     },
-    lua::register_all,
 };
 
 #[allow(dead_code)]
 pub struct TinyAgent {
-    lua: Lua,
-    configs: Configurations,
-
-    messages: Vec<ChatMessage>,
-
-    chat_client: LuaChatClient,
-    tool_executor: LuaToolExecutor,
-    handlers: Box<dyn EventHandler>,
-    tools: Vec<Tool>,
+    pub(crate) lua: Lua,
+    pub(crate) configs: Configurations,
+    pub(crate) messages: Vec<ChatMessage>,
+    pub(crate) chat_client: LuaChatClient,
+    pub(crate) tool_executor: LuaToolExecutor,
+    pub(crate) handlers: Box<dyn EventHandler>,
+    pub(crate) tools: Vec<Tool>,
 }
 
 impl TinyAgent {
-    pub fn new() -> TinyResult<Self> {
-        let lua = Lua::new();
-        let globals = lua.globals();
-        let require = globals.get::<LuaFunction>("require")?;
-
-        let exec_path = std::env::current_exe().unwrap();
-        let mut exec_folder = exec_path.parent().unwrap();
-
-        #[cfg(debug_assertions)]
-        {
-            exec_folder = exec_folder // debug
-                .parent() // target
-                .unwrap()
-                .parent() // workspace
-                .unwrap();
-        }
-        // update lua package search path
-        let package_table = globals.get::<LuaTable>("package")?;
-        package_table.set(
-            "path",
-            format!(
-                "{0}/tiny/core/?.lua;{0}/tiny/core/?/init.lua;{0}/extensions/?.lua;{0}/extensions/?/init.lua",
-                exec_folder.to_string_lossy()
-            ),
-        )?;
-
-        register_all(&lua)?;
-
-        // add tiny table
-        let tiny_table = lua.create_table()?;
-
-        // chat_clients table
-        let chat_clients_table = lua.create_table()?;
-
-        tiny_table.set("chat_clients", chat_clients_table)?;
-
-        // event handler
-        let event_handler_table = lua.create_table()?;
-
-        tiny_table.set("event_handlers", event_handler_table)?;
-
-        globals.set("tiny", tiny_table)?;
-
-        require.call::<()>("main")?;
-
-        // load configurations (.tiny.json)
-        let mut config_str = String::new();
-
-        #[allow(unused)]
-        {
-            let mut json_path = Path::new(".tiny.json").to_path_buf();
-
-            #[cfg(debug_assertions)]
-            {
-                json_path = exec_folder.join(".tiny.json");
-            }
-
-            let mut file =
-                File::open(json_path).expect("Fail to load .tiny.json in current folder.");
-
-            file.read_to_string(&mut config_str)?;
-        }
-
-        let configs: Configurations = serde_json::from_str(&config_str)?;
-
-        // main.lua will defined a 'tiny.load_extensions' function that require a extension list
-        let load_exetensions = globals.get_path::<LuaFunction>("tiny.load_extensions")?;
-
-        load_exetensions.call::<()>(configs.extensions.clone())?;
-
-        let tool_executor =
-            LuaToolExecutor::from_tools(&exec_folder.join("tools"), &configs.tools)?;
-
-        let tools = tool_executor.get_tools();
-
-        let handlers: Box<dyn EventHandler> = Box::new(LuaEventHandlers::new(
-            &lua,
-            globals.get_path::<LuaTable>("tiny.event_handlers")?,
-        )?);
-        let chat_client = LuaChatClient::new(&lua)?;
-
-        Ok(Self {
-            lua,
-            messages: vec![ChatMessage::System("You are a helpfule assistant".into())],
-            handlers,
-            tool_executor,
-            chat_client,
-            configs,
-            tools,
-        })
-    }
-
     pub fn chat<F>(
         &mut self,
         client: &str,
