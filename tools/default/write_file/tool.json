@@ -1,0 +1,19 @@
+{
+    "$schema": "../../../.vscode/tool.schema.json",
+    "name": "write_file",
+    "description": "Write content to file, it will over write the file with new content",
+    "parameters": [
+        {
+            "name": "file",
+            "description": "file to write to",
+            "required": true,
+            "type": "string"
+        },
+        {
+            "name": "content",
+            "description": "text content to write to",
+            "required": true,
+            "type": "string"
+        }
+    ]
+}

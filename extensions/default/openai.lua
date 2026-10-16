@@ -34,10 +34,10 @@ local function message_to_openai(message)
             end)
         end
 
+        -- NOTE: we do not include the reasoning in the chatting history
         return {
             role = "assistant",
             content = message.content,
-            reasoning_content = message.reasoning,
             reasoning_details = message.reasoning_details,
             tool_calls = openai_tool_calls
         }

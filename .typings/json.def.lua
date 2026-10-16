@@ -1,16 +1,12 @@
----@class JsonWrapper
-local JsonWrapper = {}
+json = {}
 
 --- load and parse string into lua table
---- @param s string
---- @return any
-function JsonWrapper.load(s) end
+---@param s string
+---@return any
+function json.load(s) end
 
 --- dump lua object into json string
---- @param o table<string, any>
---- @param pretty boolean?
---- @return string
-function JsonWrapper.dump(o, pretty)end
-
----@type JsonWrapper
-json = {}
+---@param o      table<string, any>
+---@param pretty boolean?
+---@return string
+function json.dump(o, pretty) end

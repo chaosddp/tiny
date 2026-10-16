@@ -68,6 +68,14 @@ enum Commands {
         #[command(subcommand)]
         command: Option<SessionCommands>,
     },
+    /// Lua mode
+    Lua {
+        /// file to launch
+        #[arg(short, long)]
+        file: String,
+        #[arg(trailing_var_arg = true)]
+        args: Vec<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -174,6 +182,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     match cli.command {
+        Some(Commands::Lua { file, args }) => {
+            let exec_path = std::env::current_exe().unwrap();
+            let mut exec_folder = exec_path.parent().unwrap();
+
+            #[cfg(debug_assertions)]
+            {
+                exec_folder = exec_folder // debug
+                    .parent() // target
+                    .unwrap()
+                    .parent() // workspace
+                    .unwrap();
+            }
+
+            let agent = TinyAgentBuilder::new(&exec_folder.to_path_buf())?
+                .config(std::env::current_dir()?.join(".tiny.json"))?
+                .load_exetensions()?
+                .load_tools(
+                    exec_folder.join("tiny").join("core").to_path_buf(),
+                    exec_folder.join("tools").to_path_buf(),
+                )?
+                .build()?;
+
+            agent.execute(&file, args)?;
+        }
         Some(Commands::Init {
             tools: _,
             extensions: _,
@@ -196,7 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 api_key: "ollama".into(),
                 stream: Some(true),
                 stream_include_usage: None,
-                max_tokens: Some(64000),
+                max_tokens: Some(1024000),
                 reasoning_effort: None,
             };
 

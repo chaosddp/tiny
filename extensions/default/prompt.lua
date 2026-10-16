@@ -5,6 +5,7 @@ Use the tools to solve task with following guideline:
 - Act, do not explain.
 - Do not guess, tell the user if you do not know what to do
 - Create a todo list for complex task, finish one by one
+- Make sure the output to user is UTF-8 charset if possible
 ]],
 path.working_dir()
 )

@@ -9,9 +9,13 @@ local base64 = base64
 
 ---@param options string
 local function run_powershell(options)
-    ---@type RunCommandOptions
-    local options = json.load(options)
+    local success, options = pcall(json.load, options)
 
+    if not success then
+        return options
+    end
+
+    ---@cast options RunCommandOptions
     local command = options.command
 
     if command == nil then
@@ -48,7 +52,9 @@ local function run_powershell(options)
         local success, b64_command = pcall(base64.encode, utf16_bytes)
 
         if success then
-            local command_to_run = string.format("powershell -NonInteractive -encodedCommand %s", b64_command)
+            local command_to_run = string.format(
+                "powershell -NonInteractive -encodedCommand %s", b64_command
+            )
             local success, file = pcall(io.popen, command_to_run, "r")
 
             if success then

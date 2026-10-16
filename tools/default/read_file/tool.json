@@ -1,0 +1,19 @@
+{
+    "$schema": "../../../.vscode/tool.schema.json",
+    "name": "read_file",
+    "description": "Read file text content in UTF-8 charset",
+    "parameters": [
+        {
+            "name": "file",
+            "description": "which file to write",
+            "required": true,
+            "type": "string"
+        },
+        {
+            "name": "limit",
+            "description": "max character to read",
+            "required": false,
+            "type": "integer"
+        }
+    ]
+}

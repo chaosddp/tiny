@@ -1,3 +1,5 @@
+use std::{fs::File, io::Read};
+
 use log::debug;
 use mlua::prelude::*;
 
@@ -105,6 +107,22 @@ impl TinyAgent {
             chat_chunk_cb,
             &self.handlers,
         )?;
+
+        Ok(())
+    }
+
+    pub fn execute(&self, file: &str, args: Vec<String>) -> TinyResult<()> {
+        let mut script = String::new();
+
+        {
+            let mut file = File::open(file)?;
+
+            file.read_to_string(&mut script)?;
+        }
+
+        self.lua.globals().set("arg", args)?;
+
+        self.lua.load(script).exec()?;
 
         Ok(())
     }
