@@ -48,7 +48,7 @@ local function run_powershell(options)
         local success, b64_command = pcall(base64.encode, utf16_bytes)
 
         if success then
-            local command_to_run = string.format("powershell -encodedCommand %s", b64_command)
+            local command_to_run = string.format("powershell -NonInteractive -encodedCommand %s", b64_command)
             local success, file = pcall(io.popen, command_to_run, "r")
 
             if success then

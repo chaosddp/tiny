@@ -8,31 +8,45 @@
 ---@field parent    string? @parent of the path
 local PathInfo = {}
 
----@class Path
-local Path = {}
+path = {}
 
 --- check if the path is a file
 ---@param s string @path to check
 ---@return boolean
-function Path.is_file(s) end
+function path.is_file(s) end
 
 --- check if the path is a dir
 ---@param s string @path to check
 ---@return boolean
-function Path.is_dir(s) end
+function path.is_dir(s) end
 
 --- check if path exist
 ---@param s string @path to check
 ---@return boolean
-function Path.exists(s) end
+function path.exists(s) end
 
 ---@param s string
-function Path.mkdir(s) end
+function path.mkdir(s) end
 
 --- get detail info for a path
 ---@param s string
 ---@return PathInfo
-function Path.get_path_info(s) end
+function path.get_path_info(s) end
 
----@type Path
-path = {}
+--- get current working dir
+---@return string
+function path.working_dir() end
+
+--- get the folder of the executable
+---@return string
+function source_base_dir() end
+
+--- return the absolute folder of path
+---@param s string
+---@return string
+function absolute(s) end
+
+--- glob with pattern
+--- @param p string @glob pattern
+--- @string[] 
+function glob(p) end
