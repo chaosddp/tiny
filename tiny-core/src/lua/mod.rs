@@ -1,8 +1,9 @@
 pub mod base64;
+pub mod http;
 pub mod json;
 pub mod path;
+pub mod platform;
 pub mod string;
-pub mod http;
 use mlua::prelude::*;
 
 pub fn register_base(lua: &Lua) -> LuaResult<()> {
@@ -11,6 +12,7 @@ pub fn register_base(lua: &Lua) -> LuaResult<()> {
     path::register(lua)?;
     base64::register(lua)?;
     http::register(lua)?;
+    platform::register(lua)?;
 
     Ok(())
 }

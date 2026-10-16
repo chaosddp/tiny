@@ -1,0 +1,13 @@
+{
+    "$schema": "../../../.vscode/tool.schema.json",
+    "name": "run_powershell",
+    "description": "run command in Microsoft Powershell on Windows system",
+    "parameters": [
+        {
+            "name": "command",
+            "description": "the command need to run",
+            "required": true,
+            "type": "string"
+        }
+    ]
+}
