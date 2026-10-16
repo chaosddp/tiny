@@ -1,4 +1,8 @@
 local string = string
+local json = json
+local io = io
+local pcall = pcall
+local base64 = base64
 
 ---@class RunCommandOptions
 ---@field command string
@@ -31,16 +35,36 @@ local function run_powershell(options)
         return "iex or Invoke-Expression is not allowed to run"
     end
 
-    -- encode as utf-16
-    local encoded_command = base64.encode(string.to_bytes(command, "utf-16"))
+    -- force powershell output utf-8 charset
+    local command = string.format(
+        "$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; %s",
+        command
+    )
 
-    local file = io.popen(string.format("powershell -encodedCommand %s", encoded_command), "r")
+    -- encode to utf-16 as powershell required
+    local success, utf16_bytes = pcall(string.to_bytes, command, "utf-16")
 
-    local output = file:read("*a")
+    if success then
+        local success, b64_command = pcall(base64.encode, utf16_bytes)
 
-    local success, detail = pcall(string.from_os_string, output)
+        if success then
+            local command_to_run = string.format("powershell -encodedCommand %s", b64_command)
+            local success, file = pcall(io.popen, command_to_run, "r")
 
-    return detail
+            if success then
+                local output = file:read("*a")
+                file:close()
+
+                return output
+            end
+
+            return file
+        end
+
+        return b64_command
+    end
+
+    return utf16_bytes
 end
 
 return run_powershell
