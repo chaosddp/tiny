@@ -15,12 +15,7 @@ function tiny.load()
 end
 
 --- handle 'session' command
-function tiny.session(...)
-
-end
-
---- handle 'lua' command to execute specified files
-function tiny.file(...)
+function tiny.session(command, options)
 
 end
 

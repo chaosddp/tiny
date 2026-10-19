@@ -3,6 +3,7 @@ mod config;
 mod lua;
 
 use clap::{Parser, Subcommand, ValueEnum};
+use mlua::prelude::*;
 
 use crate::app::{ChatOptions, TinyApplication};
 
@@ -65,7 +66,7 @@ enum Commands {
     /// manage sessions for current project
     Session {
         #[command(subcommand)]
-        command: Option<SessionCommands>,
+        command: SessionCommands,
     },
     /// Lua mode
     Lua {
@@ -79,8 +80,6 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum SessionCommands {
-    /// create a new session - backup and clear default one
-    New,
     /// show session content
     Show {
         /// name of the session
@@ -111,12 +110,12 @@ fn main() -> Result<(), anyhow::Error> {
             println!("init");
         }
         Some(Commands::Session { command }) => match command {
-            Some(SessionCommands::New) => {
-                app.session()?;
+            SessionCommands::List => {
+                app.session("list", LuaValue::Nil)?;
             }
-            Some(SessionCommands::List) => {}
-            Some(SessionCommands::Show { name: _ }) => {}
-            None => {}
+            SessionCommands::Show { name } => {
+                app.session("show", name)?;
+            }
         },
         None => {
             let user_message = cli.content.join(" ");

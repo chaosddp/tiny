@@ -124,8 +124,12 @@ impl TinyApplication {
         Ok(())
     }
 
-    pub fn session(&self) -> LuaResult<()> {
+    pub fn session(&self, command: &str, options: impl IntoLua) -> LuaResult<()> {
         // called in session command
+        let session_func: LuaFunction = self.lua.globals().get_path("tiny.session")?;
+
+        session_func.call::<()>((command.to_string(), options))?;
+
         Ok(())
     }
 

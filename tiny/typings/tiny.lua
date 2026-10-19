@@ -9,9 +9,6 @@ function tiny.load() end
 --- handle 'session' command
 function tiny.session(...) end
 
---- handle 'lua' command to execute specified files
-function tiny.file(...) end
-
 --- handle default chat command
 function tiny.chat(...) end
 
