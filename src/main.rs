@@ -1,3 +1,6 @@
+mod app;
+mod lua;
+
 use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -93,7 +96,7 @@ enum SessionCommands {
     List,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
 
     let cli = Cli::parse();
