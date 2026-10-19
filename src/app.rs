@@ -3,13 +3,17 @@ use std::{
     env::{current_dir, home_dir},
     fs::{File, OpenOptions},
     io::{BufReader, Read, Write},
+    sync::{Arc, Condvar, Mutex, atomic::AtomicUsize},
 };
 
 use log::debug;
 use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{config::Configurations, lua::register_all};
+use crate::{
+    config::Configurations,
+    lua::{register_all, thread::registry::LuaChannelRegistry},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChatOptions {
@@ -50,13 +54,18 @@ pub struct TinyApplication {
     // main thread for tiny
     lua: Lua,
     config: Option<Configurations>,
+    channel_registry: Arc<LuaChannelRegistry>,
 }
 
 impl TinyApplication {
     pub fn new() -> LuaResult<Self> {
         let lua = Lua::new();
 
-        let mut inst = Self { lua, config: None };
+        let mut inst = Self {
+            lua,
+            config: None,
+            channel_registry: Arc::new(LuaChannelRegistry::default()),
+        };
 
         inst.initialize()?;
 
@@ -281,6 +290,9 @@ impl TinyApplication {
 
         // register utilities
         register_all(&self.lua)?;
+
+        // register thread here as we need to keep the channel registry
+        crate::lua::thread::thread::register(&self.lua, self.channel_registry.clone())?;
 
         // update lua package search path to executable folder by default
         let exec_path = std::env::current_exe().unwrap();
