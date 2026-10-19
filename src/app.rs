@@ -3,7 +3,7 @@ use std::{
     env::{current_dir, home_dir},
     fs::{File, OpenOptions},
     io::{BufReader, Read, Write},
-    sync::{Arc, Condvar, Mutex, atomic::AtomicUsize},
+    sync::Arc,
 };
 
 use log::debug;

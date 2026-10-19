@@ -82,6 +82,7 @@ impl ChannelInner {
         }
     }
 
+    #[allow(dead_code)]
     pub fn clear(&self) {
         let receiver = self.receiver.lock().unwrap();
 
@@ -111,19 +112,12 @@ impl LuaChannelRegistry {
             .or_insert_with(|| Arc::new(ChannelInner::default()))
             .clone()
     }
-
-    pub fn clear(&self, name: &str) {
-        let channel = self.channels.lock().unwrap().get(name).cloned();
-
-        if let Some(channel) = channel {
-            channel.clear();
-        }
-    }
 }
 
 #[derive(Clone)]
 pub struct LuaChannel(pub Arc<ChannelInner>);
 
+#[allow(dead_code)]
 impl LuaChannel {
     pub fn new() -> Self {
         Self(Arc::new(ChannelInner::default()))

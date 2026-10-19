@@ -21,20 +21,19 @@ function tiny.chat(content, options)
 
     local thread = tiny.thread.newThread(
         [[
+
+    local n1, n2 = arg[1] or 1, arg[2] or 10
     local channel = tiny.channel.get("chat_channel")
 
     print(channel)
 
-    for i=1,5 do
-        print(i)
+    for i=n1, n2 do
         channel:send(i)
     end
 
-    ]]
-    )
+    ]])
 
     local channel = tiny.channel.get("chat_channel")
-
 
     while not thread:is_finished() do
         local v = channel:recv("j")

@@ -11,7 +11,10 @@ use mlua::prelude::*;
 
 use crate::lua::{
     register_all,
-    thread::registry::{LuaChannel, LuaChannelRegistry},
+    thread::{
+        registry::{LuaChannel, LuaChannelRegistry},
+        value::LuaThreadValue,
+    },
 };
 
 pub struct LuaThread {
@@ -19,7 +22,11 @@ pub struct LuaThread {
 }
 
 impl LuaThread {
-    pub fn new(content: String, channel_registry: Arc<LuaChannelRegistry>) -> Self {
+    pub fn new(
+        content: String,
+        args: Vec<LuaThreadValue>,
+        channel_registry: Arc<LuaChannelRegistry>,
+    ) -> Self {
         let registry = channel_registry.clone();
         let handler = thread::spawn(move || {
             let lua = Lua::new();
@@ -34,7 +41,7 @@ impl LuaThread {
             channel_table
                 .set(
                     "get",
-                    lua.create_function(move |lua: &Lua, name: String| {
+                    lua.create_function(move |_: &Lua, name: String| {
                         let channel = registry.get_or_create(name.as_ref());
 
                         Ok(LuaChannel(channel))
@@ -48,6 +55,8 @@ impl LuaThread {
             tiny_table.set("channel", channel_table).unwrap();
 
             globals.set("tiny", tiny_table).unwrap();
+
+            globals.set("arg", args).expect("Fail to send arguments");
 
             if let Err(e) = lua.load(content).exec() {
                 panic!("Fail to execute thread code: {}", e.to_string());
@@ -87,26 +96,36 @@ pub fn register(lua: &Lua, registry: Arc<LuaChannelRegistry>) -> LuaResult<()> {
     let thread_registry = registry.clone();
     thread_table.set(
         "newThread",
-        lua.create_function(move |_, file_or_content: String| {
-            let file_path = Path::new(&file_or_content);
+        lua.create_function(
+            move |_, (file_or_content, args): (String, LuaVariadic<LuaThreadValue>)| {
+                let file_path = Path::new(&file_or_content);
 
-            if file_path.exists() && file_path.is_file() {
-                let mut scripts = String::new();
+                if file_path.exists() && file_path.is_file() {
+                    let mut scripts = String::new();
 
-                {
-                    let mut fp = File::open(file_path)?;
-                    fp.read_to_string(&mut scripts)?;
+                    {
+                        let mut fp = File::open(file_path)?;
+                        fp.read_to_string(&mut scripts)?;
+                    }
+
+                    debug!("start thread from script content: {0}", file_or_content);
+
+                    Ok(LuaThread::new(
+                        scripts,
+                        args.to_vec(),
+                        thread_registry.clone(),
+                    ))
+                } else {
+                    debug!("start thread from script content: {0}", file_or_content);
+
+                    Ok(LuaThread::new(
+                        file_or_content,
+                        args.to_vec(),
+                        thread_registry.clone(),
+                    ))
                 }
-
-                debug!("start thread from script content: {0}", file_or_content);
-
-                Ok(LuaThread::new(scripts, thread_registry.clone()))
-            } else {
-                debug!("start thread from script content: {0}", file_or_content);
-
-                Ok(LuaThread::new(file_or_content, thread_registry.clone()))
-            }
-        })?,
+            },
+        )?,
     )?;
 
     let tiny_table: LuaTable = globals.get("tiny")?;
