@@ -15,7 +15,7 @@ fn send_http_request(
     data: Option<LuaValue>,
     headers: Option<LuaTable>,
     callback: Option<LuaFunction>,
-) -> LuaResult<Option<LuaValue>> {
+) -> LuaResult<(bool, Option<LuaValue>)> {
     #[allow(unused)]
     let mut result = None;
 
@@ -83,15 +83,23 @@ fn send_http_request(
                 }
             }
             Err(e) => {
-                return Err(mlua::Error::RuntimeError(e.to_string()));
+                let error_table = lua.create_table()?;
+                error_table.set("status_code", e.status().unwrap_or_default().as_u16())?;
+                error_table.set("message", e.to_string())?;
+
+                return Ok((false, Some(LuaValue::Table(error_table))));
             }
         },
         Err(e) => {
-            return Err(mlua::Error::RuntimeError(e.to_string()));
+            let error_table = lua.create_table()?;
+            error_table.set("status_code", e.status().unwrap_or_default().as_u16())?;
+            error_table.set("message", e.to_string())?;
+
+            return Ok((false, Some(LuaValue::Table(error_table))));
         }
     }
 
-    Ok(result)
+    Ok((true, result))
 }
 
 pub struct LuaHttpClient {

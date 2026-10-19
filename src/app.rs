@@ -106,19 +106,14 @@ impl TinyApplication {
             require.call::<()>("main")?;
         }
 
-        let conf_func: LuaFunction = globals.get_path("tiny.conf")?;
-
-        // call tiny.conf
-        if let Some(config) = &self.config {
-            conf_func.call::<()>(config)?;
-        } else {
-            conf_func.call::<()>(self.lua.create_table()?)?;
-        }
-
         // call tiny.load
         let load_func: LuaFunction = globals.get_path("tiny.load")?;
 
-        load_func.call::<()>(())?;
+        if let Some(config) = &self.config {
+            load_func.call::<()>(config)?;
+        } else {
+            load_func.call::<()>(self.lua.create_table()?)?;
+        }
 
         Ok(())
     }

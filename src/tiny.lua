@@ -1,8 +1,5 @@
 local tiny = {}
 
--- called before started, pass current configurations
-function tiny.conf(...) end
-
 --- called after 'tiny.conf' to do initialization
 function tiny.load(...) end
 
