@@ -1,7 +1,10 @@
 mod app;
+mod config;
 mod lua;
 
 use clap::{Parser, Subcommand, ValueEnum};
+
+use crate::app::{ChatOptions, TinyApplication};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ThiinkingEffort {
@@ -29,17 +32,9 @@ struct Cli {
     #[arg(short, long)]
     thinking_effort: Option<ThiinkingEffort>,
 
-    /// show reasoning content
-    #[arg(short, long)]
-    reasoning: bool,
-
     /// allow all the tools of current round
     #[arg(short, long)]
     allow: bool,
-
-    /// show tokens usage after response
-    #[arg(short, long)]
-    usage: bool,
 
     /// do not memory about this chat
     #[arg(short, long)]
@@ -99,10 +94,15 @@ enum SessionCommands {
 fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
 
+    let app = TinyApplication::new()?;
+    app.load()?;
+
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Commands::Lua { file: _, args: _ }) => {}
+        Some(Commands::Lua { file, args }) => {
+            app.script(&file, args)?;
+        }
         Some(Commands::Init {
             tools: _,
             extensions: _,
@@ -111,13 +111,24 @@ fn main() -> Result<(), anyhow::Error> {
             println!("init");
         }
         Some(Commands::Session { command }) => match command {
-            Some(SessionCommands::New) => {}
+            Some(SessionCommands::New) => {
+                app.session()?;
+            }
             Some(SessionCommands::List) => {}
             Some(SessionCommands::Show { name: _ }) => {}
             None => {}
         },
         None => {
-            let _user_message = cli.content.join(" ");
+            let user_message = cli.content.join(" ");
+
+            let mut options = ChatOptions::default();
+            options.allow = cli.allow;
+            options.image = cli.image;
+            options.model = cli.model;
+            options.no_memory = cli.no_memory;
+            options.session = cli.session;
+
+            app.chat(&user_message, &options)?;
         }
     }
 
