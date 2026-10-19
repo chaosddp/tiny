@@ -1,6 +1,6 @@
 ---@class HttpError
 ---@field status_code? integer
----@field message? string
+---@field message?     string
 
 ---@class ChatOptions
 ---@field model      string
@@ -8,6 +8,7 @@
 ---@field base_url   string
 ---@field max_tokens integer
 ---@field stream     boolean
+---@field client?    string
 local ChatOptions = {}
 
 ---@class ChatClient

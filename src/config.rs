@@ -57,7 +57,8 @@ impl IntoLua for &ModelDefinition {
 
         t.set("provider", provider.to_string())?;
         t.set("model", model_name.to_string())?;
-        t.set("base_url", model_name.to_string())?;
+        t.set("base_url", self.base_url.to_string())?;
+        t.set("client", self.client.to_string())?;
 
         if self.api_key.starts_with("env:") {
             let env_key = &self.api_key[4..];

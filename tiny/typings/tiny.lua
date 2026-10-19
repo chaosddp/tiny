@@ -11,6 +11,7 @@ local ModelFeatures = {}
 ---@field api_key     string
 ---@field max_tokens? integer
 ---@field features    ModelFeatures
+---@field client      string
 local Model = {}
 
 ---@class Configurations
@@ -28,7 +29,10 @@ local Configurations = {}
 ---@field session?   string
 local UserOptions = {}
 
-tiny = {}
+tiny = {
+    ---@type Configurations
+    config = {}
+}
 
 --- called before started, pass current configurations
 ---@param t Configurations

@@ -109,11 +109,7 @@ impl TinyApplication {
         // call tiny.load
         let load_func: LuaFunction = globals.get_path("tiny.load")?;
 
-        if let Some(config) = &self.config {
-            load_func.call::<()>(config)?;
-        } else {
-            load_func.call::<()>(self.lua.create_table()?)?;
-        }
+        load_func.call::<()>(())?;
 
         Ok(())
     }
@@ -274,12 +270,12 @@ impl TinyApplication {
             serde_json::to_string_pretty(&config).unwrap()
         );
 
-        self.config = Some(config);
-
         // create global table 'tiny'
         let globals = self.lua.globals();
 
         let tiny_table: LuaTable = self.lua.load(include_str!("tiny.lua")).eval()?;
+
+        tiny_table.set("config", &config)?;
 
         globals.set("tiny", tiny_table)?;
 
@@ -301,6 +297,8 @@ impl TinyApplication {
                 exec_folder.to_string_lossy()
             ),
         )?;
+
+        self.config = Some(config);
 
         Ok(())
     }

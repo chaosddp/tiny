@@ -2,12 +2,11 @@ require "utils"
 
 local ExtensionLoader = require "extension_loader"
 
----@param config Configurations
-function tiny.load(config)
+function tiny.load()
     local extension_loader = ExtensionLoader.new()
 
-    if config.extensions then
-        for _, extension in ipairs(config.extensions) do
+    if tiny.config.extensions then
+        for _, extension in ipairs(tiny.config.extensions) do
             extension_loader:load(extension)
         end
     end
@@ -18,66 +17,38 @@ function tiny.session(command, options)
 end
 
 --- handle default chat command
+---@param content string
+---@param options UserOptions
 function tiny.chat(content, options)
-    print(string.format("chat content: %s", content))
-
-    -- local thread = tiny.thread.newThread(
-    --     [[
-
-    -- local n1, n2 = arg[1] or 1, arg[2] or 10
-    -- local channel = tiny.channel.get("chat_channel")
-
-    -- print(channel)
-
-    -- for i=n1, n2 do
-    --     channel:send(i)
-    -- end
-
-    -- ]]
-    -- )
-
-    -- local channel = tiny.channel.get("chat_channel")
-
-    -- while not thread:is_finished() do
-    --     local v = channel:recv("j")
-
-    --     if v ~= nil then
-    --         print(v)
-    --     end
-    -- end
-
-    -- print(thread:is_finished())
-
-    local openai = require "default.openai"
-
-    local success, msg = openai:chat({
+    -- TODO: load message here
+    ---@type Message[]
+    local messages = {
         {
             role = "system",
-            content = "You are a helpful assistant"
+            content = "You are a helpfule assistant"
         },
         {
-            role = "user",
-            content = "What can you do?"
+            role = 'user',
+            content = content
         }
-    },
-        {
-            model = "qwen3.5",
-            base_url = "http://localhost:11434/v1",
-            api_key = "ollama",
-            max_tokens = 64000,
-            stream = true
-        }, nil, tiny.chunk)
+    }
 
-    if not success then
-        if msg ~= nil then
-            print(msg.status_code)
-            print(msg.message)
-        end
-    end
+    local model_name = options.model or tiny.config.default_model
 
-    print()
-    if success and msg then
-        print(msg.content)
+    local model = tiny.config.models[model_name]
+
+    ---@type ChatOptions
+    local chat_options = {
+        model = model.model,
+        api_key = model.api_key,
+        base_url = model.base_url,
+        stream = true,
+        max_tokens = model.max_tokens or 8000,
+        client = model.client
+    }
+
+    if tiny.extensions.chat_loop then
+        tiny.extensions.chat_loop(messages, chat_options)
     end
 end
 
@@ -91,5 +62,12 @@ function tiny.chunk(chunk)
     if chunk.reasoning then
         io.write(chunk.reasoning)
         io.flush()
+    end
+end
+
+function tiny.message(message)
+    if message then
+        print(message.role)
+        print(message.content)
     end
 end

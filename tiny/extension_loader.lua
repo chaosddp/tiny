@@ -7,7 +7,12 @@ ExtensionLoader.__index = ExtensionLoader
 function ExtensionLoader.new()
     if tiny.extensions == nil then
         tiny.extensions = {
-            chat_clients = {}
+            ---@type table<string, ChatClient>
+            chat_clients = {},
+            ---@type ToolManager?
+            tool_executor = nil,
+            ---@type fun(messages: Message[], options: ChatOptions): (bool, AssistantMessage)?
+            chat_loop = nil
         }
     end
 

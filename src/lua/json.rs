@@ -64,7 +64,11 @@ pub fn lua_to_json_value(lua: &Lua, lua_value: &LuaValue) -> JsonValue {
             }
 
             // if there is any kv pairs, then it will be json object, we will ignore sequential values
-            return JsonValue::Object(kv_pairs);
+            if kv_pairs.len() > 0 {
+                return JsonValue::Object(kv_pairs);
+            } else {
+                return JsonValue::Array(sequnce_values);
+            }
         }
         _ => JsonValue::Null, // we do not support these types, so just return null
     }
