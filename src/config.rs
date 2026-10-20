@@ -126,8 +126,8 @@ impl Default for Configurations {
                     tools: true,
                 },
             }]),
-            tools: Some(vec!["extensions/default".into()]),
-            extensions: Some(vec!["tools/default".into()]),
+            tools: Some(vec!["default".into()]),
+            extensions: Some(vec!["default".into()]),
         }
     }
 }

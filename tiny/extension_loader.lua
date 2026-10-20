@@ -22,7 +22,14 @@ end
 -- TODO: can i make it a sandbox?
 function ExtensionLoader:load(folder)
     if not path.exists(folder) then
-        return
+        -- then try to load it as builtin extensions
+        local builtin_path = string.format("%s/extensions/%s", path.source_base_dir(), folder)
+
+        if not path.exists(builtin_path) then
+            return
+        end
+
+        folder = builtin_path
     end
 
     -- add the folder as search path

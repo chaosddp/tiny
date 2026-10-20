@@ -39,14 +39,14 @@ function path.working_dir() end
 
 --- get the folder of the executable
 ---@return string
-function source_base_dir() end
+function path.source_base_dir() end
 
 --- return the absolute folder of path
 ---@param s string
 ---@return string
-function absolute(s) end
+function path.absolute(s) end
 
 --- glob with pattern
---- @param p string @glob pattern
---- @string[] 
-function glob(p) end
+---@param p string @glob pattern
+---@string[]
+function path.glob(p) end

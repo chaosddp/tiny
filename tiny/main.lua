@@ -52,22 +52,43 @@ function tiny.chat(content, options)
     end
 end
 
+local chunk_state = 0
+
 --- handle chunks if enbled stream mode
+---@param chunk Chunk
 function tiny.chunk(chunk)
-    if chunk.content then
+    if chunk.reasoning and #chunk.reasoning > 0 then
+        if chunk_state ~= 1 then
+            print("-- Reasoning --\n\n")
+
+            chunk_state = 1
+        end
+
+        io.write(chunk.reasoning)
+        io.flush()
+    end
+
+    if chunk.content and #chunk.content > 0 then
+        if chunk_state ~= 2 then
+            print("\n\n-- Assistant --\n\n")
+
+            chunk_state = 2
+        end
+
         io.write(chunk.content)
         io.flush()
     end
 
-    if chunk.reasoning then
-        io.write(chunk.reasoning)
-        io.flush()
+    if chunk.done then
+        print()
+
+        chunk_state = 0
     end
 end
 
 function tiny.message(message)
-    if message then
-        print(message.role)
-        print(message.content)
-    end
+    -- if message then
+    --     print(message.role)
+    --     print(message.content)
+    -- end
 end

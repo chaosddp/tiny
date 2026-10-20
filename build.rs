@@ -20,4 +20,9 @@ fn main() {
         .args(["-r", "tiny", dest_path.to_str().unwrap()])
         .spawn()
         .expect("fail to copy builtin file");
+
+    Command::new("cp")
+        .args(["-r", "extensions", dest_path.to_str().unwrap()])
+        .spawn()
+        .expect("fail to copy builtin file");
 }
