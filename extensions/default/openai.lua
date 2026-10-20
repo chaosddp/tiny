@@ -60,7 +60,6 @@ local function message_to_openai(message)
         return {
             role = "assistant",
             content = message.content,
-            reasoning_content = message.reasoning,
             reasoning_details = message.reasoning_details,
             tool_calls = openai_tool_calls
         }
@@ -172,11 +171,11 @@ function OpenAIChatClient:chat(messages, options, tools, chunk_callback)
                 end
 
                 if chunk.tool_call then
-                   if message.tool_calls ==  nil then
+                    if message.tool_calls == nil then
                         message.tool_calls = {}
-                   end
+                    end
 
-                   table.insert(message.tool_calls, chunk.tool_call)
+                    table.insert(message.tool_calls, chunk.tool_call)
                 end
             end
         end

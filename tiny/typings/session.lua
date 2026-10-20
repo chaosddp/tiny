@@ -17,3 +17,9 @@ function ISessionManager:log_message(message) end
 ---@return string @name of the session
 ---@return string @path to session
 function ISessionManager:new_session(name) end
+
+---@return string[]
+function ISessionManager:get_sessions() end
+
+---@return string? @default session name
+function ISessionManager:get_default() end

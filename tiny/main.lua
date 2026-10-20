@@ -25,6 +25,20 @@ end
 
 --- handle 'session' command
 function tiny.session(command, options)
+    if tiny.extensions.session_manager then
+        if command == "list" then
+            local default_session = tiny.extensions.session_manager:get_default()
+            local sessions = tiny.extensions.session_manager:get_sessions()
+
+            for _, session in ipairs(sessions) do
+                if session == default_session then
+                    print(session .. " - default")
+                else
+                    print(session)
+                end
+            end
+        end
+    end
 end
 
 --- handle default chat command
@@ -114,6 +128,7 @@ function tiny.chunk(chunk)
 end
 
 function tiny.message(message)
+    -- NOTE: we saved assistant message reasoning content here, but our chat client will ignore it while construct the request palyload
     if tiny.extensions.session_manager then
         tiny.extensions.session_manager:log_message(message)
     end

@@ -1,8 +1,6 @@
 local working_dir_root = string.format("%s/.tiny", path.working_dir())
 local sessions_file = string.format("%s/session.json", working_dir_root)
 
-print(sessions_file)
-
 ---@class SessionManager: ISessionManager
 ---@field private cur_memory_file? file
 ---@field private session_settings table<string, any>
@@ -144,6 +142,14 @@ function SessionManager:log_message(message)
         self.cur_memory_file:write(string.format("%s\n", json.dump(message)))
         self.cur_memory_file:flush()
     end
+end
+
+function SessionManager:get_sessions()
+    return self.session_settings.sessions
+end
+
+function SessionManager:get_default()
+    return self.session_settings.default
 end
 
 function SessionManager.__gc(t)
