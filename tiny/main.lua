@@ -50,7 +50,7 @@ function tiny.chat(content, options)
     local messages = {
         {
             role = "system",
-            content = "You are a helpfule assistant"
+            content = "You are a helpful assistant"
         }
     }
 

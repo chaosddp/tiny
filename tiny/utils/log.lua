@@ -37,6 +37,7 @@ local log = {
 
 log.usecolor = true
 log.outfile = nil
+---@diagnostic disable-next-line: assign-type-mismatch
 log.level = os.getenv("RUST_LOG") or "fatal"
 
 local modes = {
