@@ -1,3 +1,7 @@
+local tiny = tiny
+local io = io
+local ipairs = ipairs
+
 require "utils"
 
 local ExtensionLoader = require "extension_loader"

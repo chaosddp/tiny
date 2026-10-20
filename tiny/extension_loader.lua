@@ -9,41 +9,31 @@ function ExtensionLoader.new()
         tiny.extensions = {
             ---@type table<string, ChatClient>
             chat_clients = {},
-            ---@type ToolManager?
-            tool_executor = nil,
-            ---@type fun(messages: Message[], options: ChatOptions): (bool, AssistantMessage)?
+            ---@type IToolManager?
+            tool_manager = nil,
+            ---@type fun(messages: Message[], options: ChatOptions)?
             chat_loop = nil
         }
     end
 
-    return setmetatable({}, ExtensionLoader)
-end
-
--- TODO: can i make it a sandbox?
-function ExtensionLoader:load(folder)
-    if not path.exists(folder) then
-        -- then try to load it as builtin extensions
-        local builtin_path = string.format("%s/extensions/%s", path.source_base_dir(), folder)
-
-        if not path.exists(builtin_path) then
-            return
-        end
-
-        folder = builtin_path
-    end
+    local builtin_path = string.format("%s/extensions", path.source_base_dir())
 
     -- add the folder as search path
     local old_package_path = package.path
 
     package.path = table.concat({
         old_package_path,
-        folder .. "/?.lua",
-        folder .. "/?/init.lua"
+        builtin_path .. "/?.lua",
+        builtin_path .. "/?/init.lua"
     }, ";")
 
-    require "extension"
+    return setmetatable({}, ExtensionLoader)
+end
 
-    package.path = old_package_path
+-- TODO: can i make it a sandbox?
+---@param name string
+function ExtensionLoader:load(name)
+    require(name .. ".extension")
 end
 
 return ExtensionLoader

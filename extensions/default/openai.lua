@@ -2,6 +2,8 @@ local table = table
 local string = string
 local pairs = pairs
 local ipairs = ipairs
+local json = json
+local pcall = pcall
 
 --- NOTE: definition is not completed
 ---@class OpenAIMessage

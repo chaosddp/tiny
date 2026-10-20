@@ -1,3 +1,7 @@
+local tiny = tiny
+local table = table
+local ipairs = ipairs
+
 ---@param messages Message[]
 ---@param options  ChatOptions
 local function base_chat_loop(messages, options)
@@ -36,13 +40,12 @@ local function base_chat_loop(messages, options)
             if assistant_message.finish_reason ~= "tool_calls"
                 or assistant_message.tool_calls == nil
                 or #assistant_message == 0
-                or tiny.extensions.tool_executor == nil then
+                or tiny.extensions.tool_manager == nil then
                 break
             end
 
             for _, tool_call in ipairs(assistant_message.tool_calls) do
-                -- TODO: tool call with tiny.extensions.tool_executor
-                local result = tiny.extensions.tool_executor:call(
+                local result = tiny.extensions.tool_manager:call(
                     tool_call.name,
                     tool_call.arguments
                 )
