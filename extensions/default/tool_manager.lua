@@ -1,5 +1,6 @@
 ---@class ToolManager: IToolManager
 ---@field private lua_state LuaState
+---@field private _tools Tool[] @tools cache
 local ToolManager = {}
 
 ToolManager.__index = ToolManager
@@ -85,7 +86,8 @@ end
     )
 
     return setmetatable({
-        lua_state = lua_state
+        lua_state = lua_state,
+        _tools = nil
     }, ToolManager)
 end
 
@@ -105,7 +107,13 @@ function ToolManager:call(tool, arguments)
 end
 
 function ToolManager:tools()
+    if self._tools ~= nil then
+       return self._tools 
+    end
+
     local tools = self.lua_state:eval("tiny.tools")
+
+    self._tools = tools
 
     ---@diagnostic disable-next-line: return-type-mismatch
     return tools

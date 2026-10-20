@@ -170,6 +170,14 @@ function OpenAIChatClient:chat(messages, options, tools, chunk_callback)
                 if chunk.finish_reason then
                     message.finish_reason = chunk.finish_reason
                 end
+
+                if chunk.tool_call then
+                   if message.tool_calls ==  nil then
+                        message.tool_calls = {}
+                   end
+
+                   table.insert(message.tool_calls, chunk.tool_call)
+                end
             end
         end
 

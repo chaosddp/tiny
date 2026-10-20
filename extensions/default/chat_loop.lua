@@ -6,8 +6,8 @@ local ipairs = ipairs
 ---@param options  ChatOptions
 local function base_chat_loop(messages, options)
     local tools = nil
-    if tiny.extensions.tool_executor then
-        tools = tiny.extensions.tool_executor:tools()
+    if tiny.extensions.tool_manager then
+        tools = tiny.extensions.tool_manager:tools()
     end
 
     local client_name = options.client or "openai"
@@ -39,12 +39,20 @@ local function base_chat_loop(messages, options)
 
             if assistant_message.finish_reason ~= "tool_calls"
                 or assistant_message.tool_calls == nil
-                or #assistant_message == 0
+                or #assistant_message.tool_calls == 0
                 or tiny.extensions.tool_manager == nil then
                 break
             end
 
             for _, tool_call in ipairs(assistant_message.tool_calls) do
+                logger.debug(
+                    string.format(
+                        "calling tool %s with arguments %s",
+                        tool_call.name,
+                        tool_call.arguments == nil and "nil" or tool_call.arguments
+                    )
+                )
+
                 local result = tiny.extensions.tool_manager:call(
                     tool_call.name,
                     tool_call.arguments
