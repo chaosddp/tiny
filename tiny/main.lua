@@ -14,6 +14,13 @@ function tiny.load()
             extension_loader:load(extension)
         end
     end
+
+    -- load tools
+    if tiny.extensions.tool_manager and tiny.config.tools then
+        for _, tool in ipairs(tiny.config.tools) do
+            tiny.extensions.tool_manager:load(tool)
+        end
+    end
 end
 
 --- handle 'session' command
@@ -51,24 +58,17 @@ function tiny.chat(content, options)
         client = model.client
     }
 
-    if tiny.extensions.chat_loop then
-        tiny.extensions.chat_loop(messages, chat_options)
+    if tiny.extensions.tool_manager then
+        print("tools: " .. tostring(#tiny.extensions.tool_manager:tools()))
+
+        local ret = tiny.extensions.tool_manager:call("get_platform", nil)
+
+        print(ret)
     end
 
-    local state = lua.newState()
-
-    state:execute(
-        [[
-        function foo()
-            return "bar"
-        end
-    ]]
-    )
-
-    local ret = state:eval("foo()")
-
-    ---@cast ret string
-    print("foo result from another state: " .. ret)
+    -- if tiny.extensions.chat_loop then
+    --     tiny.extensions.chat_loop(messages, chat_options)
+    -- end
 end
 
 local chunk_state = 0

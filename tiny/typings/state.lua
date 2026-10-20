@@ -1,6 +1,6 @@
 ---@alias LuaStatePrimaryValue boolean | integer | number | string
 
----@alias LuaStateValue LuaStatePrimaryValue | table<LuaStatePrimaryValue, LuaStatePrimaryValue>
+---@alias LuaStateValue LuaStatePrimaryValue | table<LuaStatePrimaryValue, LuaStatePrimaryValue> | LuaStatePrimaryValue[]
 
 ---@class LuaState
 local LuaState = {}

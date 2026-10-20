@@ -25,4 +25,9 @@ fn main() {
         .args(["-r", "extensions", dest_path.to_str().unwrap()])
         .spawn()
         .expect("fail to copy builtin file");
+
+    Command::new("cp")
+        .args(["-r", "tools", dest_path.to_str().unwrap()])
+        .spawn()
+        .expect("fail to copy builtin file");
 }
