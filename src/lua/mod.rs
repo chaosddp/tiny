@@ -3,6 +3,7 @@ pub mod http;
 pub mod json;
 pub mod path;
 pub mod platform;
+pub mod state;
 pub mod string;
 pub mod thread;
 
@@ -15,5 +16,7 @@ pub fn register_all(lua: &Lua) -> LuaResult<()> {
     base64::register(lua)?;
     http::register(lua)?;
     platform::register(lua)?;
+    state::register(lua)?;
+
     Ok(())
 }

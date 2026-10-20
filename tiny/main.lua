@@ -54,6 +54,21 @@ function tiny.chat(content, options)
     if tiny.extensions.chat_loop then
         tiny.extensions.chat_loop(messages, chat_options)
     end
+
+    local state = lua.newState()
+
+    state:execute(
+        [[
+        function foo()
+            return "bar"
+        end
+    ]]
+    )
+
+    local ret = state:eval("foo()")
+
+    ---@cast ret string
+    print("foo result from another state: " .. ret)
 end
 
 local chunk_state = 0
