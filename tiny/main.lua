@@ -31,18 +31,34 @@ end
 ---@param content string
 ---@param options UserOptions
 function tiny.chat(content, options)
-    -- TODO: load message here
+    --- TODO: support prompt updating later
     ---@type Message[]
     local messages = {
         {
             role = "system",
             content = "You are a helpfule assistant"
-        },
-        {
-            role = 'user',
-            content = content
         }
     }
+
+    if tiny.extensions.session_manager then
+        tiny.extensions.session_manager:switch_session(options.session)
+
+        local memories = tiny.extensions.session_manager:load_memory(options.session)
+
+        for _, m in ipairs(memories) do
+            table.insert(messages, m)
+        end
+    end
+
+    ---@type UserMessage
+    local user_message = {
+        role = 'user',
+        content = content
+    }
+
+    tiny.message(user_message)
+
+    table.insert(messages, user_message)
 
     local model_name = options.model or tiny.config.default_model
 
@@ -98,8 +114,7 @@ function tiny.chunk(chunk)
 end
 
 function tiny.message(message)
-    -- if message then
-    --     print(message.role)
-    --     print(message.content)
-    -- end
+    if tiny.extensions.session_manager then
+        tiny.extensions.session_manager:log_message(message)
+    end
 end

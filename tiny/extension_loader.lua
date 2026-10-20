@@ -12,7 +12,9 @@ function ExtensionLoader.new()
             ---@type IToolManager?
             tool_manager = nil,
             ---@type fun(messages: Message[], options: ChatOptions)?
-            chat_loop = nil
+            chat_loop = nil,
+            ---@type ISessionManager?
+            session_manager = nil,
         }
     end
 
